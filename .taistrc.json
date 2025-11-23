@@ -1,0 +1,15 @@
+{
+  "format": "toon",
+  "trace": {
+    "enabled": false,
+    "depth": 2
+  },
+  "watch": {
+    "ignore": ["node_modules", ".git", "dist", "build"],
+    "delay": 500
+  },
+  "output": {
+    "abbreviate": true,
+    "maxTokens": 1000
+  }
+}
