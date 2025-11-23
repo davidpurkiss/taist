@@ -8,3 +8,6 @@ coverage/
 .env
 .env.local
 .taist-output
+
+# npm package tarballs
+*.tgz

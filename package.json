@@ -7,12 +7,21 @@
   "bin": {
     "taist": "./taist.js"
   },
+  "files": [
+    "lib/",
+    "index.js",
+    "taist.js",
+    "LICENSE",
+    "README.md",
+    ".taistrc.json"
+  ],
   "scripts": {
     "test": "vitest",
     "test:ai": "node taist.js test --format toon",
     "test:watch": "node taist.js watch",
     "test:trace": "node taist.js test --trace --depth 3",
-    "demo": "node taist.js test -f ./examples/calculator.js -t ./examples/calculator.test.js"
+    "demo": "node taist.js test -f ./examples/calculator.js -t ./examples/calculator.test.js",
+    "prepublishOnly": "echo '✓ Preparing for publish...'"
   },
   "keywords": [
     "testing",
@@ -22,10 +31,21 @@
     "token-optimized",
     "llm",
     "claude",
-    "copilot"
+    "copilot",
+    "ai-testing",
+    "test-runner",
+    "toon"
   ],
-  "author": "",
+  "author": "David Purkiss",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/davidpurkiss/taist.git"
+  },
+  "bugs": {
+    "url": "https://github.com/davidpurkiss/taist/issues"
+  },
+  "homepage": "https://github.com/davidpurkiss/taist#readme",
   "dependencies": {
     "commander": "^11.1.0",
     "vitest": "^1.0.4",
