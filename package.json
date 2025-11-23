@@ -16,12 +16,19 @@
     ".taistrc.json"
   ],
   "scripts": {
-    "test": "vitest",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:unit": "vitest run test/unit",
+    "test:integration": "vitest run test/integration",
+    "test:coverage": "vitest run --coverage",
     "test:ai": "node taist.js test --format toon",
-    "test:watch": "node taist.js watch",
-    "test:trace": "node taist.js test --trace --depth 3",
-    "demo": "node taist.js test -f ./examples/calculator.js -t ./examples/calculator.test.js",
-    "prepublishOnly": "echo '✓ Preparing for publish...'"
+    "test:ai:watch": "node taist.js watch",
+    "test:ai:trace": "node taist.js test --trace --depth 3",
+    "demo": "node taist.js test -t ./examples/calculator.test.js",
+    "demo:json": "node taist.js test -t ./examples/calculator.test.js --format json",
+    "demo:compact": "node taist.js test -t ./examples/calculator.test.js --format compact",
+    "demo:failing": "node taist.js test -t ./examples/failing.test.js || true",
+    "prepublishOnly": "npm run test"
   },
   "keywords": [
     "testing",
