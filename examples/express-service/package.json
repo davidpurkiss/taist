@@ -1,0 +1,17 @@
+{
+  "name": "taist-express-example",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Example Express server with Taist instrumentation",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "start:traced": "TAIST_ENABLED=true node server.js",
+    "start:toon": "TAIST_ENABLED=true TAIST_FORMAT=toon node server.js",
+    "start:json": "TAIST_ENABLED=true TAIST_FORMAT=json TAIST_OUTPUT_INTERVAL=10000 node server.js",
+    "test": "node test-api.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2"
+  }
+}

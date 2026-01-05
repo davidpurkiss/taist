@@ -1,0 +1,27 @@
+{
+  "format": "toon",
+  "trace": {
+    "enabled": true,
+    "depth": 3
+  },
+  "watch": {
+    "ignore": [
+      "**/node_modules/**",
+      "**/.git/**",
+      "**/coverage/**",
+      "**/dist/**"
+    ],
+    "delay": 1000
+  },
+  "output": {
+    "abbreviate": true,
+    "maxTokens": 5000,
+    "truncate": {
+      "strings": 50,
+      "arrays": 3,
+      "objects": 4
+    }
+  },
+  "testPattern": "tests/**/*.test.js",
+  "silent": true
+}

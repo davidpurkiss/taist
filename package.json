@@ -11,10 +11,15 @@
     "lib/",
     "index.js",
     "taist.js",
+    "instrument.js",
     "LICENSE",
     "README.md",
     ".taistrc.json"
   ],
+  "exports": {
+    ".": "./index.js",
+    "./instrument": "./instrument.js"
+  },
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
@@ -28,6 +33,14 @@
     "demo:json": "node taist.js test -t ./examples/calculator.test.js --format json",
     "demo:compact": "node taist.js test -t ./examples/calculator.test.js --format compact",
     "demo:failing": "node taist.js test -t ./examples/failing.test.js || true",
+    "example:integration": "node examples/integration-service/run-monitored-tests.js",
+    "example:integration:watch": "node examples/integration-service/run-monitored-tests.js --watch",
+    "example:integration:trace": "node examples/integration-service/run-monitored-tests.js --trace-deep",
+    "example:integration:json": "node examples/integration-service/run-monitored-tests.js --json",
+    "example:integration:compact": "node examples/integration-service/run-monitored-tests.js --compact",
+    "example:integration:enhanced": "node examples/integration-service/run-monitored-tests-enhanced.js",
+    "verify": "./verify-tracing.sh",
+    "verify:trace": "node examples/integration-service/test-traced.js",
     "prepublishOnly": "npm run test"
   },
   "keywords": [

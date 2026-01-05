@@ -12,6 +12,8 @@ import { VitestRunner } from './lib/vitest-runner.js';
 import { OutputFormatter } from './lib/output-formatter.js';
 import { WatchHandler } from './lib/watch-handler.js';
 import { ExecutionTracer } from './lib/execution-tracer.js';
+import { ServiceTracer } from './lib/service-tracer.js';
+import { spawn } from 'child_process';
 
 const program = new Command();
 
@@ -68,6 +70,28 @@ program
       const mergedOptions = { ...config, ...options };
 
       await runWatch(mergedOptions);
+    } catch (error) {
+      console.error('Error:', error.message);
+      process.exit(1);
+    }
+  });
+
+/**
+ * Monitor command - Run a Node.js service with tracing
+ */
+program
+  .command('monitor <script>')
+  .description('Monitor a Node.js service with execution tracing')
+  .option('--format <format>', 'Output format (toon|json|compact|human)', 'toon')
+  .option('-d, --depth <level>', 'Trace depth level (1-5)', '3')
+  .option('-o, --output <file>', 'Output file for traces')
+  .option('-i, --interval <ms>', 'Output interval in milliseconds', '30000')
+  .option('--include <patterns>', 'Comma-separated patterns to include')
+  .option('--exclude <patterns>', 'Comma-separated patterns to exclude')
+  .option('--slow-threshold <ms>', 'Threshold for slow operations', '100')
+  .action(async (script, options) => {
+    try {
+      await runMonitor(script, options);
     } catch (error) {
       console.error('Error:', error.message);
       process.exit(1);
@@ -283,6 +307,56 @@ async function runWatch(options) {
     await watchHandler.stop();
     process.exit(0);
   });
+}
+
+/**
+ * Run a service with monitoring
+ */
+async function runMonitor(script, options) {
+  console.log('Starting service monitoring...');
+  console.log(`Script: ${script}`);
+  console.log(`Format: ${options.format}`);
+  console.log(`Depth: ${options.depth}`);
+
+  // Set environment variables for the child process
+  const env = {
+    ...process.env,
+    TAIST_ENABLED: 'true',
+    TAIST_DEPTH: options.depth || '3',
+    TAIST_FORMAT: options.format || 'toon',
+    TAIST_OUTPUT_FILE: options.output || '',
+    TAIST_OUTPUT_INTERVAL: options.interval || '30000',
+    TAIST_INCLUDE: options.include || '',
+    TAIST_EXCLUDE: options.exclude || '',
+    TAIST_SLOW_THRESHOLD: options.slowThreshold || '100'
+  };
+
+  // For now, run directly with instrumentation via require
+  // In production, would use a loader
+  console.log('\nNote: For production use, add instrumentation to your service.');
+  console.log('See examples/express-service for implementation details.\n');
+
+  // Spawn the service
+  const child = spawn('node', [script], {
+    env,
+    stdio: 'inherit'
+  });
+
+  // Handle exit
+  child.on('exit', (code) => {
+    console.log(`\nService exited with code ${code}`);
+    process.exit(code);
+  });
+
+  // Handle errors
+  child.on('error', (error) => {
+    console.error('Failed to start service:', error);
+    process.exit(1);
+  });
+
+  // Forward signals
+  process.on('SIGINT', () => child.kill('SIGINT'));
+  process.on('SIGTERM', () => child.kill('SIGTERM'));
 }
 
 // Parse arguments

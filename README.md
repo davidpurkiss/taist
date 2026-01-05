@@ -28,6 +28,7 @@ Taist (Token-Optimized AI Testing) is a standalone Node.js testing framework des
 ### Key Features
 - **Token-efficient output formats** (TOON - Token-Optimized Output Notation)
 - **Runtime execution tracing** without explicit logging
+- **Production service monitoring** with zero-config instrumentation
 - **Vitest integration** for modern testing capabilities
 - **Watch mode** for iterative AI-assisted development
 - **AI-agnostic design** - works with any AI tool
@@ -145,6 +146,165 @@ AssertionError: expected 5 to be 6
 │   Runner    │ │   Tracer    │ │  Formatter  │
 └─────────────┘ └─────────────┘ └─────────────┘
 ```
+
+---
+
+## Production Service Monitoring
+
+Taist provides zero-configuration instrumentation for production Node.js services, capturing execution traces, performance metrics, and errors in real-time.
+
+### Quick Start
+
+#### 1. Add to Your Service
+
+```javascript
+// Add at the top of your service entry point
+import 'taist/instrument';
+// Or: require('taist/instrument');
+```
+
+#### 2. Run with Monitoring
+
+```bash
+# Enable via environment variable
+TAIST_ENABLED=true node server.js
+
+# Or use the CLI
+taist monitor server.js
+
+# With configuration
+TAIST_ENABLED=true \
+TAIST_FORMAT=toon \
+TAIST_DEPTH=3 \
+TAIST_OUTPUT_FILE=traces.log \
+node server.js
+```
+
+### Express Integration Example
+
+```javascript
+import { instrumentExpress, instrumentService } from 'taist/instrument';
+import express from 'express';
+
+// Instrument service classes
+class UserService {
+  async createUser(data) { /* ... */ }
+  async getUser(id) { /* ... */ }
+}
+
+const userService = instrumentService(new UserService(), 'UserService');
+
+// Instrument Express app
+const app = express();
+instrumentExpress(app);
+
+// Routes are automatically traced
+app.get('/users/:id', async (req, res) => {
+  const user = await userService.getUser(req.params.id);
+  res.json(user);
+});
+
+// Add trace endpoints
+app.get('/trace/insights', (req, res) => {
+  res.json(tracer.getInsights());
+});
+```
+
+### Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `TAIST_ENABLED` | Enable/disable tracing | `true` |
+| `TAIST_FORMAT` | Output format (toon/json/compact/human) | `toon` |
+| `TAIST_DEPTH` | Trace depth level (1-5) | `3` |
+| `TAIST_OUTPUT_FILE` | File to write traces | - |
+| `TAIST_OUTPUT_INTERVAL` | Output interval in ms | `30000` |
+| `TAIST_INCLUDE` | Patterns to include (comma-separated) | - |
+| `TAIST_EXCLUDE` | Patterns to exclude (comma-separated) | - |
+| `TAIST_SLOW_THRESHOLD` | Slow operation threshold in ms | `100` |
+
+### Output Formats
+
+#### TOON Format (Token-Optimized)
+```
+[TAIST] up:120s calls:5432 err:3
+[SLOW] 12 ops >100ms
+[BUGS] 2 detected
+  • email_validation
+  • division_by_zero
+[TOP] getUser:234 createUser:123 listUsers:89
+[ERR] User not found, Invalid email
+```
+
+#### JSON Format (Structured)
+```json
+{
+  "stats": {
+    "totalCalls": 5432,
+    "totalErrors": 3,
+    "slowOperations": 12,
+    "bugsDetected": 2
+  },
+  "traces": {
+    "topFunctions": {
+      "UserService.getUser": 234,
+      "UserService.createUser": 123
+    }
+  }
+}
+```
+
+### Verification
+
+Test your instrumentation with the included verification script:
+
+```bash
+# Terminal 1: Start service with tracing
+cd examples/express-service
+npm install express
+npm run start:traced
+
+# Terminal 2: Run verification
+node test-api.js
+```
+
+Expected output:
+- ✓ Function call tracking
+- ✓ Error capture
+- ✓ Slow operation detection
+- ✓ Real-time insights
+- ✓ TOON formatted output
+
+### Production Best Practices
+
+1. **Performance Impact**: Tracing adds ~2-5% overhead at depth 3
+2. **Memory Usage**: Circular buffer limits memory to ~10MB
+3. **Security**: Exclude sensitive patterns with `TAIST_EXCLUDE`
+4. **Output**: Write to file for production (`TAIST_OUTPUT_FILE`)
+5. **Sampling**: Use depth 1-2 for high-traffic services
+
+### API Reference
+
+```javascript
+import { tracer, autoInstrument } from 'taist/instrument';
+
+// Instrument a class
+const instrumented = autoInstrument(MyClass, 'MyClass');
+
+// Get insights programmatically
+const insights = tracer.getInsights();
+
+// Format output
+const output = tracer.formatOutput(insights);
+
+// Clear traces
+tracer.clearTraces();
+
+// Enable/disable at runtime
+tracer.setEnabled(false);
+```
+
+---
 
 ### Data Flow
 
