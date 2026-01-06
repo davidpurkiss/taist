@@ -1,122 +1,29 @@
 # Taist - AI Test Runner
 ## Token-Optimized Testing Framework for AI-Assisted Development
 
-Version: 1.1.0
-Date: January 2025
-Status: Production Ready
+Version: 1.1.0 | [Technical Specification](./SPEC.md)
 
 ---
 
 ## Table of Contents
-1. [Executive Summary](#executive-summary)
-2. [Problem Statement](#problem-statement)
-3. [Solution Overview](#solution-overview)
-4. [System Architecture](#system-architecture)
-5. [Production Service Monitoring](#production-service-monitoring)
-6. [ESM Loader Integration](#esm-loader-integration-recommended)
-7. [Build-Time Instrumentation](#build-time-instrumentation-viterollup-plugin)
-8. [Execution Tree Output](#execution-tree-output)
-9. [Core Components](#core-components)
-10. [Implementation Details](#implementation-details)
-11. [API Reference](#api-reference)
-12. [Usage Examples](#usage-examples)
-13. [Performance Considerations](#performance-considerations)
-14. [Future Enhancements](#future-enhancements)
+1. [Why Taist?](#why-taist)
+2. [Execution Tree Output](#execution-tree-output)
+3. [Quick Start](#quick-start)
+4. [Integration Methods](#integration-methods)
+5. [Configuration Reference](#configuration-reference)
+6. [Usage Examples](#usage-examples)
 
 ---
 
-## Executive Summary
+## Why Taist?
 
-Taist (Token-Optimized AI Testing) is a standalone Node.js testing framework designed to facilitate AI-assisted test-driven development (TDD) by providing token-efficient, structured output optimized for consumption by AI tools like Claude Code, GitHub Copilot CLI, and other LLM-based development assistants.
+Taist solves two critical problems when using LLMs for development and testing:
 
-### Key Features
-- **Token-efficient output formats** (TOON - Token-Optimized Output Notation)
-- **Runtime execution tracing** without explicit logging
-- **Multiple integration methods**: ESM Loader, Vite/Rollup plugin, or manual instrumentation
-- **Execution tree visualization** with depth-based indentation, args, and return values
-- **Production service monitoring** with zero-config instrumentation
-- **Vitest integration** with suppressed verbose output
-- **Watch mode** for iterative AI-assisted development
-- **AI-agnostic design** - works with any AI tool
-- **Minimal context windows** through intelligent summarization
+### 1. Token Reduction (90%)
 
-### Integration Methods
+Traditional test output wastes tokens on verbose formatting, redundant stack traces, and decorative elements. Taist compresses output using TOON (Token-Optimized Output Notation):
 
-| Method | Use Case | Setup |
-|--------|----------|-------|
-| **ESM Loader** | Node.js apps, automatic tracing | `node --import taist/loader app.js` |
-| **Vite/Rollup Plugin** | Bundled apps, build-time instrumentation | Add plugin to config |
-| **Manual Instrumentation** | Express apps, selective tracing | `import 'taist/instrument'` |
-
----
-
-## Problem Statement
-
-### Current Challenges in AI-Assisted Development
-
-1. **Token Consumption**
-   - Traditional test outputs are verbose and unstructured
-   - Multiple iterations consume entire context windows
-   - Log files contain redundant information
-   - Stack traces include irrelevant details
-
-2. **Lack of Observability**
-   - Developers must add explicit console.log statements
-   - Execution flow is opaque without debugging
-   - Variable states are not captured automatically
-   - Async operations are difficult to trace
-
-3. **Inefficient Feedback Loops**
-   - AI tools receive unstructured test output
-   - Error messages lack context about execution
-   - Previous iteration history is lost
-   - Coverage information is not integrated
-
-4. **Tool Integration Issues**
-   - No standard format for AI consumption
-   - Manual copying of test results
-   - Poor integration with existing test runners
-   - Difficult to use in CI/CD pipelines
-
-### Requirements
-
-- **R1**: Reduce token usage by 70% compared to standard test output
-- **R2**: Provide execution visibility without code modification
-- **R3**: Support iterative development with history tracking
-- **R4**: Integrate seamlessly with existing Node.js projects
-- **R5**: Output structured, parseable formats for AI tools
-
----
-
-## Solution Overview
-
-### Design Principles
-
-1. **Compression First**: Every byte of output must provide value
-2. **AI-Optimized**: Structure output for LLM pattern recognition
-3. **Zero Configuration**: Work out-of-the-box with sensible defaults
-4. **Progressive Disclosure**: Show only what's needed, when it's needed
-5. **Tool Agnostic**: No vendor lock-in or AI service dependencies
-
-### High-Level Architecture
-
-```
-┌─────────────────┐     ┌──────────────┐     ┌─────────────┐
-│  Source Code    │────►│  AI Test     │────►│   TOON      │
-│  + Test Files   │     │   Runner     │     │   Output    │
-└─────────────────┘     └──────────────┘     └─────────────┘
-                              │                      │
-                              ▼                      ▼
-                        ┌──────────────┐      ┌────────────┐
-                        │  Execution   │      │ AI Tools   │
-                        │   Tracer     │      │ (Claude,   │
-                        └──────────────┘      │  Copilot)  │
-                                              └────────────┘
-```
-
-### Output Format Comparison
-
-#### Traditional Output (450 tokens)
+**Traditional Output (450 tokens)**
 ```
 FAIL  test/calculator.test.js > Calculator > should add two numbers
 AssertionError: expected 5 to be 6
@@ -128,7 +35,7 @@ AssertionError: expected 5 to be 6
     at Module._extensions..js (node:internal/modules/cjs/loader:1435:10)
 ```
 
-#### TOON Output (45 tokens)
+**TOON Output (45 tokens)**
 ```
 ✗ calc.add
   @test:15
@@ -136,65 +43,151 @@ AssertionError: expected 5 to be 6
   path:add(2,3)→5
 ```
 
----
+### 2. Execution Visibility Without Code Changes
 
-## System Architecture
-
-### Component Diagram
-
-```
-┌──────────────────────────────────────────────────────┐
-│                   CLI Interface                       │
-│                  (Commander.js)                       │
-└─────────────┬────────────────────────────────────────┘
-              │
-              ▼
-┌──────────────────────────────────────────────────────┐
-│                 Test Orchestrator                     │
-│         (Coordination & State Management)             │
-└──────┬───────────────┬──────────────┬────────────────┘
-       │               │              │
-       ▼               ▼              ▼
-┌─────────────┐ ┌─────────────┐ ┌─────────────┐
-│   Vitest    │ │  Execution  │ │   Output    │
-│   Runner    │ │   Tracer    │ │  Formatter  │
-└─────────────┘ └─────────────┘ └─────────────┘
-```
+Instead of littering your code with `console.log` statements, Taist automatically traces function calls, arguments, return values, and errors. This gives LLMs the context they need to debug issues.
 
 ---
 
-## Production Service Monitoring
+## Execution Tree Output
 
-Taist provides zero-configuration instrumentation for production Node.js services, capturing execution traces, performance metrics, and errors in real-time.
+The execution tree is Taist's key debugging feature. It shows the complete call hierarchy with timing, arguments, return values, and errors - all without modifying your source code.
 
-### Quick Start
+### Example Output
 
-#### 1. Add to Your Service
+```
+===TESTS: 5/12===
 
+FAILURES:
+✗ Order Creation > should create order with valid data
+  @order.spec.ts:45
+  expected 500 to be 200 // Object.is equality
+  exp: "200"
+  got: "500"
+
+TRACE:
+  fn:Route.POST /order/create ms:245 args:[{email:"test@..."}] ret:{status:500}
+    fn:OrderService.createOrder ms:180 ret:{status:"error"}
+      fn:ValidationService.validate ms:10 err:Invalid email format
+      fn:AllocationService.allocate ms:45 (not called - previous error)
+    fn:StripeService.createPaymentIntent ms:0 (not called)
+```
+
+### Reading the Trace
+
+| Field | Meaning |
+|-------|---------|
+| `fn:` | Function name (Module.method format) |
+| `ms:` | Execution duration in milliseconds |
+| `args:` | Function arguments (truncated for readability) |
+| `ret:` | Return value (truncated) |
+| `err:` | Error message (if function threw) |
+
+### Depth-Based Indentation
+
+Indentation reveals the call hierarchy:
+- **No indent**: Entry point (e.g., route handler)
+- **2 spaces**: Called by entry point
+- **4 spaces**: Nested call
+- And so on...
+
+In the example above, you can immediately see that:
+1. The route handler called `OrderService.createOrder`
+2. Which called `ValidationService.validate`
+3. Which threw "Invalid email format"
+4. This caused `AllocationService.allocate` and `StripeService.createPaymentIntent` to never be called
+
+**This gives LLMs exactly the context they need to fix the bug.**
+
+---
+
+## Quick Start
+
+### Option 1: ESM Loader (Recommended)
+```bash
+# Run any Node.js app with automatic tracing
+node --import taist/loader your-app.js
+```
+
+### Option 2: Vite/Vitest Plugin
 ```javascript
-// Add at the top of your service entry point
-import 'taist/instrument';
-// Or: require('taist/instrument');
+// vitest.config.js
+import { taistPlugin } from 'taist/lib/rollup-plugin.js';
+
+export default {
+  plugins: [taistPlugin({ enabled: true })]
+};
 ```
 
-#### 2. Run with Monitoring
+### Option 3: Manual Instrumentation
+```javascript
+// Add at the top of your service
+import 'taist/instrument';
+```
+
+---
+
+## Integration Methods
+
+| Method | Use Case | Setup |
+|--------|----------|-------|
+| **ESM Loader** | Node.js apps, automatic tracing | `node --import taist/loader app.js` |
+| **Vite/Rollup Plugin** | Bundled apps, build-time instrumentation | Add plugin to config |
+| **Manual Instrumentation** | Express apps, selective tracing | `import 'taist/instrument'` |
+
+### ESM Loader Integration
+
+The ESM Loader provides automatic instrumentation for Node.js applications without requiring code changes or build configuration.
 
 ```bash
-# Enable via environment variable
-TAIST_ENABLED=true node server.js
+# Run any Node.js app with automatic tracing
+node --import taist/loader your-app.js
 
-# Or use the CLI
-taist monitor server.js
+# With filtering
+TAIST_INCLUDE=services,helpers node --import taist/loader your-app.js
 
-# With configuration
-TAIST_ENABLED=true \
-TAIST_FORMAT=toon \
-TAIST_DEPTH=3 \
-TAIST_OUTPUT_FILE=traces.log \
-node server.js
+# Debug mode (shows what's being instrumented)
+TAIST_DEBUG=1 node --import taist/loader your-app.js
 ```
 
-### Express Integration Example
+**When to use:**
+- Node.js applications (v18.19+ or v20.6+)
+- Quick debugging without code changes
+- Development and testing environments
+
+### Vite/Rollup Plugin
+
+For bundled applications, use the build-time plugin:
+
+```javascript
+// vite.config.js or vitest.config.js
+import { defineConfig } from 'vite';
+import { taistPlugin } from 'taist/lib/rollup-plugin.js';
+
+export default defineConfig({
+  plugins: [
+    taistPlugin({
+      enabled: process.env.TAIST_ENABLED === 'true',
+      include: ['**/services/**', '**/helpers/**'],
+      exclude: ['**/node_modules/**', '**/*.test.js'],
+    }),
+  ],
+});
+```
+
+**Build with instrumentation:**
+```bash
+TAIST_ENABLED=true npm run build
+```
+
+**When to use:**
+- Bundled applications (Vite, Rollup, Webpack)
+- Directus extensions
+- Browser environments (via bundler)
+
+### Manual Instrumentation
+
+For Express apps or selective tracing:
 
 ```javascript
 import { instrumentExpress, instrumentService } from 'taist/instrument';
@@ -217,728 +210,66 @@ app.get('/users/:id', async (req, res) => {
   const user = await userService.getUser(req.params.id);
   res.json(user);
 });
-
-// Add trace endpoints
-app.get('/trace/insights', (req, res) => {
-  res.json(tracer.getInsights());
-});
 ```
+
+**Run with tracing:**
+```bash
+TAIST_ENABLED=true node server.js
+```
+
+---
+
+## Configuration Reference
 
 ### Environment Variables
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `TAIST_ENABLED` | Enable/disable tracing | `true` |
-| `TAIST_DEBUG` | Enable debug logging (shows internal taist operations) | `false` |
-| `TAIST_FORMAT` | Output format (toon/json/compact/human) | `toon` |
+| `TAIST_ENABLED` | Enable/disable tracing | `true` (when loader used) |
+| `TAIST_DEBUG` | Show internal taist operations | `false` |
+| `TAIST_FORMAT` | Output format: `toon`, `json`, `compact` | `toon` |
 | `TAIST_DEPTH` | Trace depth level (1-5) | `3` |
-| `TAIST_OUTPUT_FILE` | File to write traces | - |
-| `TAIST_OUTPUT_INTERVAL` | Output interval in ms | `30000` |
-| `TAIST_INCLUDE` | Patterns to include (comma-separated) | - |
-| `TAIST_EXCLUDE` | Patterns to exclude (comma-separated) | - |
-| `TAIST_SLOW_THRESHOLD` | Slow operation threshold in ms | `100` |
-
-### Output Formats
-
-#### TOON Format (Token-Optimized)
-```
-[TAIST] up:120s calls:5432 err:3
-[SLOW] 12 ops >100ms
-[BUGS] 2 detected
-  • email_validation
-  • division_by_zero
-[TOP] getUser:234 createUser:123 listUsers:89
-[ERR] User not found, Invalid email
-```
-
-#### JSON Format (Structured)
-```json
-{
-  "stats": {
-    "totalCalls": 5432,
-    "totalErrors": 3,
-    "slowOperations": 12,
-    "bugsDetected": 2
-  },
-  "traces": {
-    "topFunctions": {
-      "UserService.getUser": 234,
-      "UserService.createUser": 123
-    }
-  }
-}
-```
-
-### Verification
-
-Test your instrumentation with the included verification script:
-
-```bash
-# Terminal 1: Start service with tracing
-cd examples/express-service
-npm install express
-npm run start:traced
-
-# Terminal 2: Run verification
-node test-api.js
-```
-
-Expected output:
-- ✓ Function call tracking
-- ✓ Error capture
-- ✓ Slow operation detection
-- ✓ Real-time insights
-- ✓ TOON formatted output
-
-### Production Best Practices
-
-1. **Performance Impact**: Tracing adds ~2-5% overhead at depth 3
-2. **Memory Usage**: Circular buffer limits memory to ~10MB
-3. **Security**: Exclude sensitive patterns with `TAIST_EXCLUDE`
-4. **Output**: Write to file for production (`TAIST_OUTPUT_FILE`)
-5. **Sampling**: Use depth 1-2 for high-traffic services
-
-### API Reference
-
-```javascript
-import { tracer, autoInstrument } from 'taist/instrument';
-
-// Instrument a class
-const instrumented = autoInstrument(MyClass, 'MyClass');
-
-// Get insights programmatically
-const insights = tracer.getInsights();
-
-// Format output
-const output = tracer.formatOutput(insights);
-
-// Clear traces
-tracer.clearTraces();
-
-// Enable/disable at runtime
-tracer.setEnabled(false);
-```
-
----
-
-## ESM Loader Integration (Recommended)
-
-The ESM Loader provides automatic instrumentation for Node.js applications without requiring code changes or build configuration. It transforms modules at load time to wrap exported functions with tracing.
-
-### Quick Start
-
-```bash
-# Run any Node.js app with automatic tracing
-node --import taist/loader your-app.js
-
-# With environment variable configuration
-TAIST_INCLUDE=services,helpers node --import taist/loader your-app.js
-
-# Debug mode to see what's being instrumented
-TAIST_DEBUG=1 node --import taist/loader your-app.js
-```
-
-### How It Works
-
-When you use the ESM loader, taist automatically:
-1. Intercepts module loading via Node.js loader hooks
-2. Transforms exported functions and classes to include tracing wrappers
-3. Records execution traces with timing, arguments, and return values
-
-```javascript
-// Your original code (services/user.js)
-export class UserService {
-  async getUser(id) { /* ... */ }
-}
-
-export function validateEmail(email) { /* ... */ }
-
-// Automatically transformed at load time to include tracing
-```
-
-### Configuration
-
-The loader is configured via environment variables:
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `TAIST_ENABLED` | Enable/disable tracing | `true` (when loader is used) |
 | `TAIST_INCLUDE` | Only trace modules matching patterns (comma-separated) | All files |
 | `TAIST_EXCLUDE` | Skip modules matching patterns | `node_modules` |
-| `TAIST_DEBUG` | Enable debug output (shows what's being transformed) | `false` |
-| `TAIST_DEPTH` | Max trace depth | `3` |
+| `TAIST_OUTPUT_FILE` | Write traces to file | stdout |
+| `TAIST_OUTPUT_INTERVAL` | Output interval in ms | `30000` |
+| `TAIST_SLOW_THRESHOLD` | Slow operation threshold in ms | `100` |
 
-### Example with Filtering
+### CLI Options
 
-```bash
-# Only trace specific directories
-TAIST_INCLUDE=services,helpers node --import taist/loader app.js
-
-# Exclude test utilities
-TAIST_EXCLUDE=node_modules,test-utils node --import taist/loader app.js
-```
-
-### When to Use ESM Loader
-
-- ✅ Node.js applications (v18.19+ or v20.6+)
-- ✅ Quick debugging without code changes
-- ✅ Development and testing environments
-- ❌ Bundled applications (use Vite/Rollup plugin instead)
-- ❌ Browser environments
-
----
-
-## Build-Time Instrumentation (Vite/Rollup Plugin)
-
-For bundled applications (like Directus extensions, Vite builds, etc.), taist provides a Vite/Rollup plugin that instruments functions at build time. This is ideal when you can't use runtime instrumentation or need traces in bundled code.
-
-### Installation
-
-The plugin works with both Vite and Rollup configurations:
-
-```javascript
-// vite.config.js or vitest.config.js
-import { defineConfig } from 'vite';
-import { taistPlugin } from 'taist/lib/rollup-plugin.js';
-
-export default defineConfig({
-  plugins: [
-    taistPlugin({
-      enabled: process.env.TAIST_ENABLED === 'true',
-      include: ['**/services/**', '**/helpers/**'],
-      exclude: ['**/node_modules/**', '**/*.test.js'],
-    }),
-  ],
-});
-```
-
-```javascript
-// rollup.config.js or extension.config.js
-import { taistPlugin } from 'taist/lib/rollup-plugin.js';
-
-export default {
-  plugins: [
-    taistPlugin({
-      include: ['**/services/**', '**/helpers/**'],
-      exclude: ['**/node_modules/**', '**/*.d.ts'],
-    }),
-    // ... other plugins
-  ],
-};
-```
-
-### How It Works
-
-The plugin transforms exported functions at build time:
-
-```javascript
-// Original code
-export async function createOrder(data) {
-  return await db.insert(data);
-}
-
-// Transformed code (when TAIST_ENABLED=true during build)
-import { getGlobalTracer } from 'taist/lib/service-tracer.js';
-const __taist_tracer = getGlobalTracer();
-const __taist_wrap = (fn, name) => __taist_tracer.wrapMethod(fn, name);
-
-async function __taist_unwrapped_createOrder(data) {
-  return await db.insert(data);
-}
-
-export const createOrder = __taist_wrap(__taist_unwrapped_createOrder, 'Order.createOrder');
-```
-
-### Build Requirements
-
-**IMPORTANT**: The extension must be built with `TAIST_ENABLED=true` for instrumentation to be included:
-
-```bash
-# Build with tracing instrumentation
-TAIST_ENABLED=true yarn build
-
-# Or for specific workspace
-TAIST_ENABLED=true yarn workspace my-extension build
-```
-
-The runtime `TAIST_ENABLED=true` enables trace *recording*, but the build-time flag adds the instrumentation *wrappers* to the bundle. Without the build-time flag, traces will show 0 function calls.
-
-### Plugin Options
-
-| Option | Description | Default |
-|--------|-------------|---------|
-| `include` | Glob patterns to include | `['**/*.ts', '**/*.js']` |
-| `exclude` | Glob patterns to exclude | `['**/node_modules/**']` |
-| `moduleName` | Base module name for traces | Auto-detected from filename |
-| `enabled` | Enable instrumentation | `process.env.TAIST_ENABLED === 'true'` |
-
-### Example: Directus Extension
-
-```javascript
-// packages/my-extension/extension.config.js
-import { taistPlugin } from 'taist/lib/rollup-plugin.js';
-import { nodeExternals } from 'rollup-plugin-node-externals';
-
-export default {
-  plugins: [
-    taistPlugin({
-      include: ['**/services/**', '**/shared/**'],
-      exclude: ['**/node_modules/**'],
-    }),
-    nodeExternals({
-      include: ['taist'],  // Keep taist external for runtime
-    }),
-  ],
-};
-```
-
-### Example: Vitest with Tracing
-
-Enable tracing during test execution to see function call hierarchies:
-
-```javascript
-// vitest.config.js
-import { defineConfig } from 'vitest/config';
-import { taistPlugin } from 'taist/lib/rollup-plugin.js';
-
-export default defineConfig({
-  plugins: [
-    // Only add plugin when TAIST_ENABLED is set
-    ...(process.env.TAIST_ENABLED === 'true' ? [
-      taistPlugin({
-        enabled: true,
-        include: ['src/**/*.js', 'src/**/*.ts'],
-        exclude: ['**/node_modules/**', '**/*.test.js', '**/*.spec.js'],
-      })
-    ] : []),
-  ],
-  test: {
-    globals: true,
-    environment: 'node',
-  },
-});
-```
-
-Run tests with tracing:
-
-```bash
-# Run tests with function tracing enabled
-TAIST_ENABLED=true npx vitest run
-
-# Or use taist CLI
-taist test --trace -t "my.test.js"
-```
-
----
-
-## Execution Tree Output
-
-When tracing is enabled, taist outputs an execution tree showing the call hierarchy with depth-based indentation:
-
-```
-TRACE:
-  fn:Route.POST /order/create ms:245 args:[{email:"test@..."}] ret:{id:"abc-123"}
-    fn:OrderService.createOrder ms:180 ret:{status:"draft"}
-      fn:ValidationService.validate ms:10 args:[{...}] ret:true
-      fn:AllocationService.allocate ms:45 ret:{success:true}
-    fn:StripeService.createPaymentIntent ms:120 ret:{clientSecret:"pi_..."}
-  fn:Cart.getCart err:getEcmCartService(...).readOne is not a function
-```
-
-### Trace Entry Format
-
-Each trace entry includes:
-- **fn**: Function name (Module.method format)
-- **ms**: Execution duration in milliseconds
-- **args**: Function arguments (truncated for readability)
-- **ret**: Return value (truncated)
-- **err**: Error message (if function threw)
-
-### Depth-Based Indentation
-
-Indentation shows the call hierarchy:
-- Level 0: No indent (entry point)
-- Level 1: 2 spaces (called by entry point)
-- Level 2: 4 spaces (nested call)
-- And so on...
-
-This makes it easy to trace the execution flow and identify where errors occur.
-
----
-
-## Suppressed Vitest Output
-
-When running tests with taist, the verbose vitest output is automatically suppressed. Only the TOON-formatted results are displayed:
-
-```bash
-$ yarn test:ai:trace -t 'order.spec.ts' -n "should create"
-
-Running tests...
-
-Formatting results...
-
-===TESTS: 5/12===
-
-FAILURES:
-✗ Order Creation > should create order with valid data
-  @order.spec.ts:45
-  expected 500 to be 200 // Object.is equality
-  exp: "200"
-  got: "500"
-
-TRACE:
-  fn:OrderService.createOrder ms:180 args:[{...}] ret:{status:"error"}
-    fn:ValidationService.validate ms:10 err:Invalid email format
-```
-
-This reduces token consumption by ~90% compared to traditional vitest output while providing all the information needed for debugging.
-
----
-
-### Data Flow
-
-1. **Input Phase**
-   - CLI parses command arguments
-   - Configuration loaded from file/defaults
-   - Source and test files identified
-
-2. **Instrumentation Phase**
-   - Code transformed with tracing hooks
-   - Test files prepared for execution
-   - Coverage instrumentation added
-
-3. **Execution Phase**
-   - Tests run via Vitest
-   - Execution traces collected
-   - Memory and performance metrics gathered
-
-4. **Output Phase**
-   - Results formatted according to format type
-   - History compressed and stored
-   - Output streamed to stdout/file
-
----
-
-## Core Components
-
-### 1. CLI Interface (`taist.js`)
-
-**Purpose**: Entry point for all user interactions
-
-**Responsibilities**:
-- Parse command-line arguments
-- Initialize components
-- Handle process lifecycle
-- Stream output to appropriate destinations
-
-**Commands**:
 ```bash
 taist test [options]    # Run tests once
 taist watch [options]   # Run tests in watch mode
-taist trace [options]   # Run with deep execution tracing
 ```
 
-**Options**:
 | Option | Short | Description | Default |
 |--------|-------|-------------|---------|
 | `--file` | `-f` | Source file(s) to test | `./src` |
 | `--test` | `-t` | Test file(s) to run | `./test` |
-| `--format` | | Output format (toon\|json\|compact) | `toon` |
+| `--format` | | Output format | `toon` |
 | `--watch` | `-w` | Enable watch mode | `false` |
 | `--trace` | | Enable execution tracing | `false` |
 | `--depth` | `-d` | Trace depth level (1-5) | `2` |
 | `--output` | `-o` | Output file path | `stdout` |
-| `--config` | `-c` | Config file path | `.aitestrc` |
 
-### 2. TOON Formatter (`lib/toon-formatter.js`)
+### Output Formats
 
-**Purpose**: Convert test results to token-optimized format
-
-**Format Specification**:
-
+**TOON (Default)** - Token-optimized for AI consumption
 ```
-===TESTS: {passed}/{total}===
-[FAILURES:]
-✗ {test_name}
-  @{file}:{line}
-  {error_message}
-  [exp: {expected}]
-  [got: {actual}]
-  [path: {execution_path}]
-
-[TRACE:]
-  {function_trace_entries}
-
-[COV: {percent}% ({covered}/{total})]
+[TAIST] up:120s calls:5432 err:3
+[SLOW] 12 ops >100ms
+[TOP] getUser:234 createUser:123
 ```
 
-**Abbreviation Dictionary**:
-| Full Term | Abbreviation |
-|-----------|--------------|
-| function | fn |
-| error | err |
-| expected | exp |
-| received/got | got |
-| undefined | undef |
-| null | nil |
-| test/testing | tst |
-| passed | pass |
-| failed | fail |
-| arguments | args |
-| return/result | ret |
-
-**Truncation Rules**:
-- String values: Max 50 characters
-- Object representations: Show keys only (first 3)
-- Arrays: Show length and first 2 items
-- Stack traces: First 2 frames only
-- Error messages: Remove timestamps and absolute paths
-
-### 3. Execution Tracer (`lib/execution-tracer.js`)
-
-**Purpose**: Capture runtime execution without explicit logging
-
-**Features**:
-- Function call interception
-- Async operation tracking
-- Memory usage monitoring
-- Error capture with context
-- Variable state snapshots
-
-**Tracing Levels**:
-1. **Level 1 - Minimal**: Test entry/exit, pass/fail
-2. **Level 2 - Standard**: + Function calls, return values
-3. **Level 3 - Detailed**: + Arguments, async operations
-4. **Level 4 - Deep**: + Variable mutations, memory
-5. **Level 5 - Complete**: Full execution replay
-
-**Implementation Strategy**:
-```javascript
-// Proxy-based function wrapping
-const wrap = (fn, name) => new Proxy(fn, {
-  apply(target, thisArg, args) {
-    tracer.enter(name, args);
-    const result = Reflect.apply(target, thisArg, args);
-    tracer.exit(name, result);
-    return result;
-  }
-});
-
-// AST transformation for automatic instrumentation
-// Inject at build time or runtime via loader hooks
-```
-
-### 4. Vitest Runner (`lib/vitest-runner.js`)
-
-**Purpose**: Execute tests and collect results
-
-**Configuration**:
-```javascript
-{
-  watch: false,
-  reporters: ['ai-reporter'],
-  ui: false,
-  color: false,
-  coverage: {
-    enabled: true,
-    reporter: ['json-summary'],
-    all: true
-  },
-  logHeapUsage: true,
-  maxConcurrency: 1  // Sequential for consistent traces
-}
-```
-
-**Custom Reporter Features**:
-- Suppress decorative output
-- Capture only essential data
-- Track memory per test
-- Record execution time
-- Extract simplified diffs
-
-### 5. Watch Handler (`lib/watch-handler.js`)
-
-**Purpose**: Enable iterative development with AI tools
-
-**Features**:
-- File change detection
-- Incremental test runs
-- History management
-- Smart diffing between iterations
-- Automatic result summarization
-
-**History Format**:
-```javascript
-{
-  iteration: number,
-  timestamp: ISO8601,
-  changes: string[],  // Changed files
-  summary: {
-    pass: number,
-    fail: number,
-    new_failures: string[],
-    fixed: string[],
-    key_errors: string[]  // Top 3 error messages
-  }
-}
-```
-
-### 6. Output Formatter (`lib/output-formatter.js`)
-
-**Purpose**: Support multiple output formats
-
-**Supported Formats**:
-
-#### TOON (Default)
-Optimized for AI consumption with aggressive compression
-
-#### JSON
+**JSON** - Structured for tooling
 ```json
 {
-  "status": "pass|fail",
-  "stats": {
-    "total": 10,
-    "passed": 8,
-    "failed": 2,
-    "skipped": 0
-  },
-  "failures": [{
-    "test": "should validate email",
-    "error": "Invalid format",
-    "location": "test.js:15",
-    "diff": {
-      "expected": true,
-      "actual": false
-    }
-  }],
-  "trace": [...],
-  "coverage": {
-    "percent": 85,
-    "lines": [45, 58]
-  }
+  "stats": { "totalCalls": 5432, "totalErrors": 3 },
+  "traces": { "topFunctions": { "UserService.getUser": 234 } }
 }
 ```
 
-#### Compact
-One-line summaries for CI/CD integration
-
----
-
-## Implementation Details
-
-### Installation & Setup
-
-```bash
-# Global installation
-npm install -g taist
-
-# Project installation
-npm install --save-dev taist
-
-# Configuration file (.taistrc.json)
-{
-  "format": "toon",
-  "trace": {
-    "enabled": false,
-    "depth": 2
-  },
-  "watch": {
-    "ignore": ["node_modules", ".git"],
-    "delay": 500
-  },
-  "output": {
-    "abbreviate": true,
-    "maxTokens": 1000
-  }
-}
-```
-
-### Node.js Loader Hook Integration
-
-```javascript
-// loader.mjs - For instrumentation without modification
-export async function load(url, context, defaultLoad) {
-  const result = await defaultLoad(url, context);
-
-  if (result.format === 'module') {
-    const source = result.source.toString();
-    const instrumented = await instrumentCode(source, url);
-
-    return {
-      format: 'module',
-      source: instrumented,
-      shortCircuit: true
-    };
-  }
-
-  return result;
-}
-```
-
-### Integration with Existing Projects
-
-```json
-// package.json
-{
-  "scripts": {
-    "test": "vitest",
-    "test:ai": "taist test --format toon",
-    "test:watch": "taist watch",
-    "test:trace": "taist test --trace --depth 3"
-  }
-}
-```
-
----
-
-## API Reference
-
-### JavaScript API
-
-```javascript
-import { Taist } from 'taist';
-
-const runner = new Taist({
-  format: 'toon',
-  trace: true,
-  depth: 2
-});
-
-// Run tests programmatically
-const results = await runner.run({
-  files: ['./src/*.js'],
-  tests: ['./test/*.test.js']
-});
-
-// Access formatted output
-const output = runner.format(results);
-
-// Watch mode with callback
-runner.watch({
-  onChange: (results) => {
-    console.log('Tests updated:', results.summary);
-  }
-});
-```
-
-### Output Stream API
-
-```javascript
-// Stream results for real-time processing
-const stream = runner.stream();
-
-stream.on('test:pass', (test) => {
-  console.log(`✓ ${test.name}`);
-});
-
-stream.on('test:fail', (test) => {
-  console.log(`✗ ${test.name}: ${test.error}`);
-});
-
-stream.on('complete', (summary) => {
-  console.log(`Total: ${summary.passed}/${summary.total}`);
-});
-```
+**Compact** - One-line summaries for CI/CD
 
 ---
 
@@ -954,34 +285,22 @@ taist test -f ./src/email.js -t ./test/email.test.js
 
 # JSON output for tooling
 taist test --format json > results.json
+
+# With execution tracing
+taist test --trace --depth 3
 ```
 
 ### With AI Tools
 
-#### Claude Code
 ```bash
-# Iterative development with Claude
+# Iterative development with Claude Code
 taist watch -f ./src -t ./test
 
-# In another terminal
-claude-code "Fix the failing test based on this output: $(cat .taist-output)"
-```
-
-#### GitHub Copilot CLI
-```bash
-# Get fix suggestions
+# Pipe to AI tools
 taist test --format toon | gh copilot explain
 
-# Generate missing tests
-taist trace -d 3 | gh copilot suggest "Add tests for uncovered paths"
-```
-
-#### Custom AI Integration
-```bash
-# Pipe to any AI tool
-taist test --format json | curl -X POST https://ai-api.example.com/fix \
-  -H "Content-Type: application/json" \
-  -d @-
+# Generate fix suggestions
+taist test --trace | your-ai-tool analyze
 ```
 
 ### CI/CD Integration
@@ -993,112 +312,35 @@ taist test --format json | curl -X POST https://ai-api.example.com/fix \
     npm install -g taist
     taist test --format compact
 
-- name: Store test results
+- name: Store detailed results on failure
   if: failure()
-  run: taist test --format json > test-results.json
+  run: taist test --trace --format json > test-results.json
+```
 
-- name: Get AI suggestions
-  if: failure()
-  run: |
-    echo "Test failures detected. AI Analysis:"
-    taist test --format toon | your-ai-tool analyze
+### Integration with package.json
+
+```json
+{
+  "scripts": {
+    "test": "vitest",
+    "test:ai": "taist test --format toon",
+    "test:watch": "taist watch",
+    "test:trace": "taist test --trace --depth 3"
+  }
+}
 ```
 
 ---
 
-## Performance Considerations
+## Installation
 
-### Token Usage Optimization
+```bash
+# Global installation
+npm install -g taist
 
-| Output Type | Traditional | TOON | Reduction |
-|-------------|------------|------|-----------|
-| Single test failure | 450 tokens | 45 tokens | 90% |
-| 10 test suite | 3,500 tokens | 350 tokens | 90% |
-| With execution trace | 8,000 tokens | 800 tokens | 90% |
-| Full coverage report | 2,000 tokens | 200 tokens | 90% |
-
-### Memory Management
-
-- Trace buffer: Circular buffer of 1000 entries
-- History storage: Last 10 iterations only
-- Streaming output: No full result accumulation
-- Lazy evaluation: Traces computed on-demand
-
-### Performance Targets
-
-- Overhead: < 5% vs native Vitest
-- Memory: < 50MB additional usage
-- Output latency: < 100ms
-- Watch mode reaction: < 500ms
-
----
-
-## Future Enhancements
-
-### Phase 1 (v1.1)
-- [ ] Browser/Deno support
-- [ ] Custom abbreviation dictionaries
-- [ ] Test result caching
-- [ ] Parallel test execution with trace merging
-
-### Phase 2 (v1.2)
-- [ ] Language model-specific formats (Claude, GPT, Gemini)
-- [ ] Intelligent test prioritization
-- [ ] Automatic test generation from traces
-- [ ] Visual trace explorer
-
-### Phase 3 (v2.0)
-- [ ] Multi-language support (Python, Go, Rust)
-- [ ] Distributed tracing
-- [ ] AI feedback integration
-- [ ] Learning from fix patterns
-
-### Potential Integrations
-- **Test Frameworks**: Jest, Mocha, Playwright
-- **AI Platforms**: OpenAI, Anthropic, Google, Local LLMs
-- **CI/CD**: GitHub Actions, GitLab CI, Jenkins
-- **IDEs**: VSCode, Cursor, Zed
-
----
-
-## Appendix
-
-### A. TOON Grammar (BNF)
-
-```bnf
-<output> ::= <header> <failures>? <trace>? <coverage>?
-<header> ::= "===TESTS:" <number> "/" <number> "===" <newline>
-<failures> ::= "FAILURES:" <newline> <failure>+
-<failure> ::= "✗" <name> <newline>
-              "@" <location> <newline>
-              <error_detail>+
-<error_detail> ::= <indent> <key> ":" <value> <newline>
-<trace> ::= "TRACE:" <newline> <trace_entry>+
-<trace_entry> ::= <indent> "fn:" <name> "," "ms:" <number>
-                  ["," "args:" <args>] ["," "err:" <message>] <newline>
-<coverage> ::= "COV:" <number> "%" "(" <number> "/" <number> ")" <newline>
+# Project installation
+npm install --save-dev taist
 ```
-
-### B. Error Code Reference
-
-| Code | Description | Solution |
-|------|-------------|----------|
-| T001 | Trace buffer overflow | Increase buffer size or reduce depth |
-| T002 | Invalid format specified | Use: toon, json, or compact |
-| T003 | No tests found | Check test file patterns |
-| T004 | Instrumentation failed | Verify Node.js version >= 18 |
-| T005 | Watch mode error | Check file permissions |
-
-### C. Benchmarks
-
-Test scenario: 100 test files, 10 tests each, 20% failure rate
-
-| Metric | Baseline (Vitest) | AI Test Runner | Difference |
-|--------|------------------|----------------|------------|
-| Execution time | 2.5s | 2.6s | +4% |
-| Memory usage | 120MB | 145MB | +21% |
-| Output size | 45KB | 4.5KB | -90% |
-| Token count | 15,000 | 1,500 | -90% |
 
 ---
 
@@ -1106,16 +348,7 @@ Test scenario: 100 test files, 10 tests each, 20% failure rate
 
 MIT License - Open source and free for commercial use
 
-## Contributing
-
-See CONTRIBUTING.md for guidelines on submitting improvements.
-
 ## Support
 
-- Documentation: https://taist.dev
 - Issues: https://github.com/taist/taist/issues
-- Discord: https://discord.gg/taist
-
----
-
-*End of Specification Document v1.1.0*
+- Technical Specification: [SPEC.md](./SPEC.md)
