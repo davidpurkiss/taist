@@ -35,6 +35,7 @@ program
   .description('Run tests once')
   .option('-f, --file <files...>', 'Source file(s) to test', ['./src'])
   .option('-t, --test <tests...>', 'Test file(s) to run', ['./test/**/*.test.js', './src/**/*.test.js'])
+  .option('-n, --name <pattern>', 'Filter tests by name pattern (regex)')
   .option('--format <format>', 'Output format (toon|json|compact)', 'toon')
   .option('--trace', 'Enable execution tracing', false)
   .option('-d, --depth <level>', 'Trace depth level (1-5)', '2')
@@ -106,6 +107,7 @@ program
   .description('Run tests with deep execution tracing')
   .option('-f, --file <files...>', 'Source file(s) to test', ['./src'])
   .option('-t, --test <tests...>', 'Test file(s) to run', ['./test/**/*.test.js', './src/**/*.test.js'])
+  .option('-n, --name <pattern>', 'Filter tests by name pattern (regex)')
   .option('--format <format>', 'Output format (toon|json|compact)', 'toon')
   .option('-d, --depth <level>', 'Trace depth level (1-5)', '3')
   .option('-o, --output-file <file>', 'Output file path (defaults to stdout)')
@@ -197,7 +199,8 @@ async function runTests(options) {
     console.error('Running tests...\n');
 
     const results = await runner.run({
-      tests: options.test
+      tests: options.test,
+      testNamePattern: options.name
     });
 
     console.error('Formatting results...\n');

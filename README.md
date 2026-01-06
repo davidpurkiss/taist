@@ -1,9 +1,9 @@
 # Taist - AI Test Runner
 ## Token-Optimized Testing Framework for AI-Assisted Development
 
-Version: 1.0.0
-Date: November 2024
-Status: Draft Specification
+Version: 1.1.0
+Date: January 2025
+Status: Production Ready
 
 ---
 
@@ -28,8 +28,10 @@ Taist (Token-Optimized AI Testing) is a standalone Node.js testing framework des
 ### Key Features
 - **Token-efficient output formats** (TOON - Token-Optimized Output Notation)
 - **Runtime execution tracing** without explicit logging
+- **Build-time instrumentation** via Rollup plugin for bundled applications
+- **Execution tree visualization** with depth-based indentation, args, and return values
 - **Production service monitoring** with zero-config instrumentation
-- **Vitest integration** for modern testing capabilities
+- **Vitest integration** with suppressed verbose output
 - **Watch mode** for iterative AI-assisted development
 - **AI-agnostic design** - works with any AI tool
 - **Minimal context windows** through intelligent summarization
@@ -303,6 +305,158 @@ tracer.clearTraces();
 // Enable/disable at runtime
 tracer.setEnabled(false);
 ```
+
+---
+
+## Build-Time Instrumentation (Rollup Plugin)
+
+For bundled applications (like Directus extensions, Webpack builds, etc.), taist provides a Rollup plugin that instruments functions at build time. This is ideal when you can't use runtime instrumentation.
+
+### Installation
+
+```javascript
+// extension.config.js or rollup.config.js
+import { taistPlugin } from 'taist/rollup-plugin';
+
+export default {
+  plugins: [
+    taistPlugin({
+      include: ['**/services/**', '**/helpers/**'],
+      exclude: ['**/node_modules/**', '**/*.d.ts'],
+    }),
+    // ... other plugins
+  ],
+};
+```
+
+### How It Works
+
+The plugin transforms exported functions at build time:
+
+```javascript
+// Original code
+export async function createOrder(data) {
+  return await db.insert(data);
+}
+
+// Transformed code (when TAIST_ENABLED=true during build)
+import { getGlobalTracer } from 'taist/lib/service-tracer.js';
+const __taist_tracer = getGlobalTracer();
+const __taist_wrap = (fn, name) => __taist_tracer.wrapMethod(fn, name);
+
+async function __taist_unwrapped_createOrder(data) {
+  return await db.insert(data);
+}
+
+export const createOrder = __taist_wrap(__taist_unwrapped_createOrder, 'Order.createOrder');
+```
+
+### Build Requirements
+
+**IMPORTANT**: The extension must be built with `TAIST_ENABLED=true` for instrumentation to be included:
+
+```bash
+# Build with tracing instrumentation
+TAIST_ENABLED=true yarn build
+
+# Or for specific workspace
+TAIST_ENABLED=true yarn workspace my-extension build
+```
+
+The runtime `TAIST_ENABLED=true` enables trace *recording*, but the build-time flag adds the instrumentation *wrappers* to the bundle. Without the build-time flag, traces will show 0 function calls.
+
+### Plugin Options
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `include` | Glob patterns to include | `['**/*.ts', '**/*.js']` |
+| `exclude` | Glob patterns to exclude | `['**/node_modules/**']` |
+| `moduleName` | Base module name for traces | Auto-detected from filename |
+| `enabled` | Enable instrumentation | `process.env.TAIST_ENABLED === 'true'` |
+
+### Example: Directus Extension
+
+```javascript
+// packages/my-extension/extension.config.js
+import { taistPlugin } from 'taist/rollup-plugin';
+import { nodeExternals } from 'rollup-plugin-node-externals';
+
+export default {
+  plugins: [
+    taistPlugin({
+      include: ['**/services/**', '**/shared/**'],
+      exclude: ['**/node_modules/**'],
+    }),
+    nodeExternals({
+      include: ['taist'],  // Keep taist external for runtime
+    }),
+  ],
+};
+```
+
+---
+
+## Execution Tree Output
+
+When tracing is enabled, taist outputs an execution tree showing the call hierarchy with depth-based indentation:
+
+```
+TRACE:
+  fn:Route.POST /order/create ms:245 args:[{email:"test@..."}] ret:{id:"abc-123"}
+    fn:OrderService.createOrder ms:180 ret:{status:"draft"}
+      fn:ValidationService.validate ms:10 args:[{...}] ret:true
+      fn:AllocationService.allocate ms:45 ret:{success:true}
+    fn:StripeService.createPaymentIntent ms:120 ret:{clientSecret:"pi_..."}
+  fn:Cart.getCart err:getEcmCartService(...).readOne is not a function
+```
+
+### Trace Entry Format
+
+Each trace entry includes:
+- **fn**: Function name (Module.method format)
+- **ms**: Execution duration in milliseconds
+- **args**: Function arguments (truncated for readability)
+- **ret**: Return value (truncated)
+- **err**: Error message (if function threw)
+
+### Depth-Based Indentation
+
+Indentation shows the call hierarchy:
+- Level 0: No indent (entry point)
+- Level 1: 2 spaces (called by entry point)
+- Level 2: 4 spaces (nested call)
+- And so on...
+
+This makes it easy to trace the execution flow and identify where errors occur.
+
+---
+
+## Suppressed Vitest Output
+
+When running tests with taist, the verbose vitest output is automatically suppressed. Only the TOON-formatted results are displayed:
+
+```bash
+$ yarn test:ai:trace -t 'order.spec.ts' -n "should create"
+
+Running tests...
+
+Formatting results...
+
+===TESTS: 5/12===
+
+FAILURES:
+✗ Order Creation > should create order with valid data
+  @order.spec.ts:45
+  expected 500 to be 200 // Object.is equality
+  exp: "200"
+  got: "500"
+
+TRACE:
+  fn:OrderService.createOrder ms:180 args:[{...}] ret:{status:"error"}
+    fn:ValidationService.validate ms:10 err:Invalid email format
+```
+
+This reduces token consumption by ~90% compared to traditional vitest output while providing all the information needed for debugging.
 
 ---
 
@@ -829,4 +983,4 @@ See CONTRIBUTING.md for guidelines on submitting improvements.
 
 ---
 
-*End of Specification Document v1.0.0*
+*End of Specification Document v1.1.0*
