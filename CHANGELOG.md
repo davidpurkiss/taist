@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2025-01-06
+
+### Added
+- **ESM Loader** for automatic function instrumentation (`node --import taist/loader app.js`)
+- **Vite/Rollup plugin** for build-time instrumentation in bundled applications
+- **Class instrumentation** support - automatically traces class methods
+- **Debug logging** with `TAIST_DEBUG` environment variable
+- **Shared transformation module** (`lib/transform.js`) for consistent code instrumentation
+- **SPEC.md** technical specification document
+
+### Changed
+- **README restructured** - "Why Taist?" and "Execution Tree Output" now prominently featured
+- README reduced from 1100+ lines to ~350 lines (technical content moved to SPEC.md)
+- Improved logger API with generic methods (`log`, `debug`, `warn`, `error`)
+- Environment variables consolidated into single reference table
+
+### Fixed
+- Sync methods no longer incorrectly return Promises when wrapped
+- Self-instrumentation prevented (taist lib files excluded from tracing)
+- Vitest plugin configuration now works correctly with TAIST_ENABLED
+
+### Documentation
+- New "Why Taist?" section highlighting core objectives (token reduction + debugging)
+- Execution Tree Output moved to prominent position with detailed explanation
+- Quick Start section with all three integration methods
+- Separate SPEC.md for architecture, BNF grammar, benchmarks, and internals
+
 ## [1.0.0] - 2024-11-23
 
 ### Added
@@ -34,4 +61,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Integration guides for CI/CD
 - Performance benchmarks and considerations
 
+[1.1.0]: https://github.com/davidpurkiss/taist/releases/tag/v1.1.0
 [1.0.0]: https://github.com/davidpurkiss/taist/releases/tag/v1.0.0

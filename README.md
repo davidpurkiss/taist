@@ -1,7 +1,7 @@
 # Taist - AI Test Runner
 ## Token-Optimized Testing Framework for AI-Assisted Development
 
-Version: 1.1.0 | [Technical Specification](./SPEC.md)
+Version: 1.1.0 | January 2025 | [Technical Specification](./SPEC.md)
 
 ---
 
