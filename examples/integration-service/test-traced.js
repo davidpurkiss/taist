@@ -63,7 +63,7 @@ async function runTests() {
       // Ignore occasional failures
     }
   }
-  const stats1 = userService.getStats();
+  const stats1 = await userService.getStats();
   console.log(`   Cache: ${stats1.cacheSize}, Users: ${stats1.totalUsers}`);
   if (stats1.cacheSize > stats1.totalUsers) {
     console.log('   ✗ Memory leak detected (cache > users)');
@@ -75,8 +75,8 @@ async function runTests() {
 
   // Test 4: Division by zero
   console.log('4. Testing division by zero...');
-  userService.cleanup();
-  const stats2 = userService.getStats();
+  await userService.cleanup();
+  const stats2 = await userService.getStats();
   if (isNaN(stats2.cacheRatio)) {
     console.log('   ✗ Division by zero (cacheRatio is NaN)');
     testsFailed++;
@@ -90,7 +90,7 @@ async function runTests() {
   let rateLimitHit = false;
   for (let i = 1; i <= 12; i++) {
     try {
-      userService.checkRateLimit('testuser');
+      await userService.checkRateLimit('testuser');
     } catch (e) {
       if (i === 11) {
         console.log('   ✓ Rate limit at request 11 (correct)');

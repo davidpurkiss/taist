@@ -5,6 +5,12 @@
  * Main entry point for the command-line interface
  */
 
+// Set TAIST_ENABLED early if --trace flag is present
+// This needs to happen before vitest.config.js is loaded
+if (process.argv.includes('--trace')) {
+  process.env.TAIST_ENABLED = 'true';
+}
+
 import { Command } from 'commander';
 import { readFileSync, existsSync, writeFileSync } from 'fs';
 import { join } from 'path';

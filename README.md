@@ -12,12 +12,16 @@ Status: Production Ready
 2. [Problem Statement](#problem-statement)
 3. [Solution Overview](#solution-overview)
 4. [System Architecture](#system-architecture)
-5. [Core Components](#core-components)
-6. [Implementation Details](#implementation-details)
-7. [API Reference](#api-reference)
-8. [Usage Examples](#usage-examples)
-9. [Performance Considerations](#performance-considerations)
-10. [Future Enhancements](#future-enhancements)
+5. [Production Service Monitoring](#production-service-monitoring)
+6. [ESM Loader Integration](#esm-loader-integration-recommended)
+7. [Build-Time Instrumentation](#build-time-instrumentation-viterollup-plugin)
+8. [Execution Tree Output](#execution-tree-output)
+9. [Core Components](#core-components)
+10. [Implementation Details](#implementation-details)
+11. [API Reference](#api-reference)
+12. [Usage Examples](#usage-examples)
+13. [Performance Considerations](#performance-considerations)
+14. [Future Enhancements](#future-enhancements)
 
 ---
 
@@ -28,13 +32,21 @@ Taist (Token-Optimized AI Testing) is a standalone Node.js testing framework des
 ### Key Features
 - **Token-efficient output formats** (TOON - Token-Optimized Output Notation)
 - **Runtime execution tracing** without explicit logging
-- **Build-time instrumentation** via Rollup plugin for bundled applications
+- **Multiple integration methods**: ESM Loader, Vite/Rollup plugin, or manual instrumentation
 - **Execution tree visualization** with depth-based indentation, args, and return values
 - **Production service monitoring** with zero-config instrumentation
 - **Vitest integration** with suppressed verbose output
 - **Watch mode** for iterative AI-assisted development
 - **AI-agnostic design** - works with any AI tool
 - **Minimal context windows** through intelligent summarization
+
+### Integration Methods
+
+| Method | Use Case | Setup |
+|--------|----------|-------|
+| **ESM Loader** | Node.js apps, automatic tracing | `node --import taist/loader app.js` |
+| **Vite/Rollup Plugin** | Bundled apps, build-time instrumentation | Add plugin to config |
+| **Manual Instrumentation** | Express apps, selective tracing | `import 'taist/instrument'` |
 
 ---
 
@@ -217,6 +229,7 @@ app.get('/trace/insights', (req, res) => {
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `TAIST_ENABLED` | Enable/disable tracing | `true` |
+| `TAIST_DEBUG` | Enable debug logging (shows internal taist operations) | `false` |
 | `TAIST_FORMAT` | Output format (toon/json/compact/human) | `toon` |
 | `TAIST_DEPTH` | Trace depth level (1-5) | `3` |
 | `TAIST_OUTPUT_FILE` | File to write traces | - |
@@ -308,15 +321,100 @@ tracer.setEnabled(false);
 
 ---
 
-## Build-Time Instrumentation (Rollup Plugin)
+## ESM Loader Integration (Recommended)
 
-For bundled applications (like Directus extensions, Webpack builds, etc.), taist provides a Rollup plugin that instruments functions at build time. This is ideal when you can't use runtime instrumentation.
+The ESM Loader provides automatic instrumentation for Node.js applications without requiring code changes or build configuration. It transforms modules at load time to wrap exported functions with tracing.
+
+### Quick Start
+
+```bash
+# Run any Node.js app with automatic tracing
+node --import taist/loader your-app.js
+
+# With environment variable configuration
+TAIST_INCLUDE=services,helpers node --import taist/loader your-app.js
+
+# Debug mode to see what's being instrumented
+TAIST_DEBUG=1 node --import taist/loader your-app.js
+```
+
+### How It Works
+
+When you use the ESM loader, taist automatically:
+1. Intercepts module loading via Node.js loader hooks
+2. Transforms exported functions and classes to include tracing wrappers
+3. Records execution traces with timing, arguments, and return values
+
+```javascript
+// Your original code (services/user.js)
+export class UserService {
+  async getUser(id) { /* ... */ }
+}
+
+export function validateEmail(email) { /* ... */ }
+
+// Automatically transformed at load time to include tracing
+```
+
+### Configuration
+
+The loader is configured via environment variables:
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `TAIST_ENABLED` | Enable/disable tracing | `true` (when loader is used) |
+| `TAIST_INCLUDE` | Only trace modules matching patterns (comma-separated) | All files |
+| `TAIST_EXCLUDE` | Skip modules matching patterns | `node_modules` |
+| `TAIST_DEBUG` | Enable debug output (shows what's being transformed) | `false` |
+| `TAIST_DEPTH` | Max trace depth | `3` |
+
+### Example with Filtering
+
+```bash
+# Only trace specific directories
+TAIST_INCLUDE=services,helpers node --import taist/loader app.js
+
+# Exclude test utilities
+TAIST_EXCLUDE=node_modules,test-utils node --import taist/loader app.js
+```
+
+### When to Use ESM Loader
+
+- ✅ Node.js applications (v18.19+ or v20.6+)
+- ✅ Quick debugging without code changes
+- ✅ Development and testing environments
+- ❌ Bundled applications (use Vite/Rollup plugin instead)
+- ❌ Browser environments
+
+---
+
+## Build-Time Instrumentation (Vite/Rollup Plugin)
+
+For bundled applications (like Directus extensions, Vite builds, etc.), taist provides a Vite/Rollup plugin that instruments functions at build time. This is ideal when you can't use runtime instrumentation or need traces in bundled code.
 
 ### Installation
 
+The plugin works with both Vite and Rollup configurations:
+
 ```javascript
-// extension.config.js or rollup.config.js
-import { taistPlugin } from 'taist/rollup-plugin';
+// vite.config.js or vitest.config.js
+import { defineConfig } from 'vite';
+import { taistPlugin } from 'taist/lib/rollup-plugin.js';
+
+export default defineConfig({
+  plugins: [
+    taistPlugin({
+      enabled: process.env.TAIST_ENABLED === 'true',
+      include: ['**/services/**', '**/helpers/**'],
+      exclude: ['**/node_modules/**', '**/*.test.js'],
+    }),
+  ],
+});
+```
+
+```javascript
+// rollup.config.js or extension.config.js
+import { taistPlugin } from 'taist/lib/rollup-plugin.js';
 
 export default {
   plugins: [
@@ -378,7 +476,7 @@ The runtime `TAIST_ENABLED=true` enables trace *recording*, but the build-time f
 
 ```javascript
 // packages/my-extension/extension.config.js
-import { taistPlugin } from 'taist/rollup-plugin';
+import { taistPlugin } from 'taist/lib/rollup-plugin.js';
 import { nodeExternals } from 'rollup-plugin-node-externals';
 
 export default {
@@ -392,6 +490,43 @@ export default {
     }),
   ],
 };
+```
+
+### Example: Vitest with Tracing
+
+Enable tracing during test execution to see function call hierarchies:
+
+```javascript
+// vitest.config.js
+import { defineConfig } from 'vitest/config';
+import { taistPlugin } from 'taist/lib/rollup-plugin.js';
+
+export default defineConfig({
+  plugins: [
+    // Only add plugin when TAIST_ENABLED is set
+    ...(process.env.TAIST_ENABLED === 'true' ? [
+      taistPlugin({
+        enabled: true,
+        include: ['src/**/*.js', 'src/**/*.ts'],
+        exclude: ['**/node_modules/**', '**/*.test.js', '**/*.spec.js'],
+      })
+    ] : []),
+  ],
+  test: {
+    globals: true,
+    environment: 'node',
+  },
+});
+```
+
+Run tests with tracing:
+
+```bash
+# Run tests with function tracing enabled
+TAIST_ENABLED=true npx vitest run
+
+# Or use taist CLI
+taist test --trace -t "my.test.js"
 ```
 
 ---

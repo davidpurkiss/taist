@@ -9,6 +9,7 @@
  */
 
 import { ServiceTracer, autoInstrument } from './lib/service-tracer.js';
+import { logger } from './lib/logger.js';
 
 // Initialize global tracer from environment variables
 const tracer = new ServiceTracer({
@@ -27,12 +28,12 @@ export { tracer, autoInstrument };
 
 // Log initialization
 if (tracer.options.enabled) {
-  console.log('[TAIST] Instrumentation enabled');
-  console.log(`[TAIST] Format: ${tracer.options.outputFormat}`);
-  console.log(`[TAIST] Depth: ${tracer.options.depth}`);
+  logger.log('Instrumentation enabled');
+  logger.log(`Format: ${tracer.options.outputFormat}`);
+  logger.log(`Depth: ${tracer.options.depth}`);
 
   if (tracer.options.outputFile) {
-    console.log(`[TAIST] Output: ${tracer.options.outputFile}`);
+    logger.log(`Output: ${tracer.options.outputFile}`);
   }
 
   // Output stats periodically if not writing to file
@@ -45,7 +46,7 @@ if (tracer.options.enabled) {
 
   // Handle shutdown gracefully
   const shutdown = () => {
-    console.log('\n[TAIST] Shutting down...');
+    logger.log('Shutting down...');
     const insights = tracer.getInsights();
     const output = tracer.formatOutput(insights);
     console.log('\n=== Final Trace Summary ===');
@@ -86,7 +87,7 @@ export function instrumentExpress(app) {
     }
   });
 
-  console.log('[TAIST] Express app instrumented');
+  logger.log('Express app instrumented');
   return app;
 }
 
