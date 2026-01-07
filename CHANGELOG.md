@@ -5,6 +5,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2025-01-07
+
+### Added
+- **APM-style tracing architecture** with Unix socket-based trace collection
+  - `TraceCollector` for aggregating traces from multiple processes
+  - `TraceReporter` client for sending traces to collector
+  - Enables cross-process trace collection (server → collector)
+- **HTTP integration testing example** demonstrating three instrumentation approaches:
+  - ESM Loader Hooks (`node --import taist/module-patcher`)
+  - Import-based (`import 'taist/instrument'`)
+  - Fully Programmatic (`ServiceTracer` class)
+- **Named exports support** - transforms now handle `export { Name }` pattern
+- **Express server examples** with HTTP API tests using native `fetch()`
+
+### Changed
+- Transform now preserves shebang lines (`#!/usr/bin/env node`) at file top
+- Transform filters out non-function/class exports (variables, instances)
+- Module hooks use full file:// paths for trace-reporter imports
+- Integration example restructured with multiple server variants
+
+### Fixed
+- Shebang handling - instrumentation no longer breaks executable scripts
+- Named export detection for classes with `extends` keyword
+- ESM loader now works correctly from any directory (not just taist root)
+
+### Documentation
+- New HTTP integration testing example in `examples/integration-service/`
+- Comparison table for all three instrumentation approaches
+- Scripts for testing each approach: `npm run test:http:loader`, etc.
+
 ## [1.1.0] - 2025-01-06
 
 ### Added
@@ -61,5 +91,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Integration guides for CI/CD
 - Performance benchmarks and considerations
 
+[1.2.0]: https://github.com/davidpurkiss/taist/releases/tag/v1.2.0
 [1.1.0]: https://github.com/davidpurkiss/taist/releases/tag/v1.1.0
 [1.0.0]: https://github.com/davidpurkiss/taist/releases/tag/v1.0.0
