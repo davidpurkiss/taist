@@ -1,6 +1,6 @@
 {
   "name": "taist",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Token-Optimized Testing Framework for AI-Assisted Development",
   "main": "index.js",
   "type": "module",
@@ -12,7 +12,6 @@
     "index.js",
     "taist.js",
     "instrument.js",
-    "loader.js",
     "LICENSE",
     "README.md",
     ".taistrc.json"
@@ -20,8 +19,10 @@
   "exports": {
     ".": "./index.js",
     "./instrument": "./instrument.js",
-    "./loader": "./loader.js",
-    "./rollup-plugin": "./lib/rollup-plugin.js",
+    "./module-patcher": "./lib/module-patcher.js",
+    "./trace-collector": "./lib/trace-collector.js",
+    "./trace-reporter": "./lib/trace-reporter.js",
+    "./config-loader": "./lib/config-loader.js",
     "./lib/*": "./lib/*"
   },
   "scripts": {
@@ -71,7 +72,6 @@
   },
   "homepage": "https://github.com/davidpurkiss/taist#readme",
   "dependencies": {
-    "@rollup/pluginutils": "^5.1.0",
     "commander": "^11.1.0",
     "vitest": "^2.1.8",
     "chokidar": "^3.5.3",

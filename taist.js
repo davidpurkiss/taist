@@ -14,12 +14,18 @@ if (process.argv.includes('--trace')) {
 import { Command } from 'commander';
 import { readFileSync, existsSync, writeFileSync } from 'fs';
 import { join } from 'path';
+import { fileURLToPath } from 'url';
+import crypto from 'crypto';
 import { VitestRunner } from './lib/vitest-runner.js';
 import { OutputFormatter } from './lib/output-formatter.js';
 import { WatchHandler } from './lib/watch-handler.js';
 import { ExecutionTracer } from './lib/execution-tracer.js';
 import { ServiceTracer } from './lib/service-tracer.js';
+import { TraceCollector, createDefaultFilter } from './lib/trace-collector.js';
+import { loadConfig as loadTaistConfig } from './lib/config-loader.js';
 import { spawn } from 'child_process';
+
+const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
 const program = new Command();
 
@@ -131,6 +137,35 @@ program
   });
 
 /**
+ * Run command - Execute any test command with tracing
+ * This is the new universal approach that works with any test runner
+ */
+program
+  .command('run')
+  .description('Run any test command with tracing (e.g., taist run -- vitest run)')
+  .option('--format <format>', 'Output format (toon|json|compact)', 'toon')
+  .option('-d, --depth <level>', 'Trace depth level (1-5)', '3')
+  .option('-o, --output-file <file>', 'Output file path (defaults to stdout)')
+  .allowUnknownOption(true)
+  .action(async (options, command) => {
+    try {
+      // Get the command to run (everything after --)
+      const args = command.args;
+      if (args.length === 0) {
+        console.error('Error: No command specified. Usage: taist run -- <command>');
+        console.error('Example: taist run -- vitest run');
+        console.error('Example: taist run -- jest');
+        process.exit(1);
+      }
+
+      await runWithCollector(args, options);
+    } catch (error) {
+      console.error('Error:', error.message);
+      process.exit(1);
+    }
+  });
+
+/**
  * Init command - create configuration file
  */
 program
@@ -145,6 +180,9 @@ program
     }
 
     const defaultConfig = {
+      include: ['src/**/*.js', 'src/**/*.ts', 'lib/**/*.js', 'lib/**/*.ts'],
+      exclude: ['**/node_modules/**', '**/*.test.*', '**/*.spec.*'],
+      depth: 3,
       format: 'toon',
       trace: {
         enabled: false,
@@ -161,7 +199,7 @@ program
     };
 
     writeFileSync(configPath, JSON.stringify(defaultConfig, null, 2));
-    console.log(`✓ Created configuration file: ${configPath}`);
+    console.log(`Created configuration file: ${configPath}`);
   });
 
 /**
@@ -366,6 +404,123 @@ async function runMonitor(script, options) {
   // Forward signals
   process.on('SIGINT', () => child.kill('SIGINT'));
   process.on('SIGTERM', () => child.kill('SIGTERM'));
+}
+
+/**
+ * Run any command with the new collector-based tracing
+ * This is the universal approach that works with any test runner
+ */
+async function runWithCollector(args, options) {
+  const sessionId = crypto.randomUUID();
+
+  // Load taist config for include/exclude patterns
+  const taistConfig = await loadTaistConfig();
+
+  if (!taistConfig.include || taistConfig.include.length === 0) {
+    console.error('Warning: No include patterns in .taistrc.json');
+    console.error('Create a .taistrc.json with include patterns to enable tracing.');
+    console.error('Example: { "include": ["src/**/*.js"] }');
+  }
+
+  // Start trace collector
+  const collector = new TraceCollector({
+    sessionId,
+    filter: createDefaultFilter(),
+  });
+
+  try {
+    await collector.start();
+    console.error(`Trace collector started: ${collector.getSocketPath()}`);
+  } catch (err) {
+    console.error('Failed to start trace collector:', err.message);
+    process.exit(1);
+  }
+
+  // Set up environment for child process
+  const env = {
+    ...process.env,
+    TAIST_ENABLED: 'true',
+    TAIST_COLLECTOR_SOCKET: collector.getSocketPath(),
+    TAIST_DEPTH: options.depth || '3',
+  };
+
+  // Build the command - prepend with node and module hooks
+  const modulePatcherPath = join(__dirname, 'lib', 'module-patcher.js');
+  const [cmd, ...cmdArgs] = args;
+
+  // Determine if we need to inject --import
+  let spawnCmd;
+  let spawnArgs;
+
+  if (cmd === 'node' || cmd.endsWith('/node')) {
+    // Direct node command - add --import flag
+    spawnCmd = cmd;
+    spawnArgs = ['--import', modulePatcherPath, ...cmdArgs];
+  } else if (cmd === 'vitest' || cmd === 'jest' || cmd === 'mocha' || cmd === 'npx' || cmd === 'yarn' || cmd === 'npm') {
+    // Test runner commands - use NODE_OPTIONS to inject
+    env.NODE_OPTIONS = `${env.NODE_OPTIONS || ''} --import ${modulePatcherPath}`.trim();
+    spawnCmd = cmd;
+    spawnArgs = cmdArgs;
+  } else {
+    // Unknown command - try NODE_OPTIONS approach
+    env.NODE_OPTIONS = `${env.NODE_OPTIONS || ''} --import ${modulePatcherPath}`.trim();
+    spawnCmd = cmd;
+    spawnArgs = cmdArgs;
+  }
+
+  console.error(`Running: ${spawnCmd} ${spawnArgs.join(' ')}`);
+  console.error('');
+
+  // Spawn the test runner
+  const child = spawn(spawnCmd, spawnArgs, {
+    env,
+    stdio: 'inherit',
+  });
+
+  // Wait for child to exit
+  const exitCode = await new Promise((resolve) => {
+    child.on('exit', (code) => resolve(code || 0));
+    child.on('error', (err) => {
+      console.error('Failed to start command:', err.message);
+      resolve(1);
+    });
+  });
+
+  // Give traces time to arrive (socket writes are async)
+  // The child process may exit before all socket data is transmitted
+  await new Promise((resolve) => setTimeout(resolve, 500));
+
+  // Collect traces
+  const traces = collector.getTraces();
+  await collector.stop();
+
+  console.error('');
+  console.error(`Collected ${traces.length} traces`);
+
+  // Format and output results
+  if (traces.length > 0) {
+    const formatter = new OutputFormatter({
+      format: options.format,
+    });
+
+    // Build results object similar to VitestRunner output
+    const results = {
+      stats: { total: 0, passed: 0, failed: 0 },
+      tests: [],
+      trace: traces,
+    };
+
+    const output = formatter.format(results);
+
+    if (options.outputFile) {
+      writeFileSync(options.outputFile, output);
+      console.error(`Results written to: ${options.outputFile}`);
+    } else {
+      console.log(output);
+    }
+  }
+
+  process.exit(exitCode);
 }
 
 // Parse arguments

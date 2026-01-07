@@ -1,4 +1,7 @@
 {
+  "include": ["examples/**/*.js", "src/**/*.js", "src/**/*.ts", "lib/**/*.js"],
+  "exclude": ["**/node_modules/**", "**/*.test.*", "**/*.spec.*", "**/taist/lib/**"],
+  "depth": 3,
   "format": "toon",
   "trace": {
     "enabled": false,

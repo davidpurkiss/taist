@@ -1,9 +1,8 @@
 {
+  "include": ["user-service.js", "*.js"],
+  "exclude": ["**/node_modules/**", "**/*.test.js", "run-*.js"],
+  "depth": 3,
   "format": "toon",
-  "trace": {
-    "enabled": true,
-    "depth": 3
-  },
   "watch": {
     "ignore": [
       "**/node_modules/**",
@@ -22,6 +21,5 @@
       "objects": 4
     }
   },
-  "testPattern": "tests/**/*.test.js",
-  "silent": true
+  "testPattern": "tests/**/*.test.js"
 }

@@ -1,0 +1,16 @@
+{
+  "name": "taist-integration-service-example",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Integration service example demonstrating all Taist instrumentation approaches",
+  "scripts": {
+    "test": "node run-monitored-tests.js",
+    "test:http:loader": "node run-http-tests.js --approach=loader",
+    "test:http:import": "node run-http-tests.js --approach=import",
+    "test:http:programmatic": "node run-http-tests.js --approach=programmatic",
+    "test:http:all": "node run-http-tests.js --approach=all"
+  },
+  "devDependencies": {
+    "express": "^4.21.2"
+  }
+}

@@ -27,7 +27,7 @@ describe('Class Instrumentation', () => {
       expect(hasExports(source)).toBe(true);
       const exports = findExports(source);
       expect(exports).toHaveLength(1);
-      expect(exports[0]).toEqual({ name: 'Calculator', type: 'class' });
+      expect(exports[0]).toEqual({ name: 'Calculator', type: 'class', declaration: 'inline' });
     });
 
     it('detects multiple class exports', () => {
