@@ -1,7 +1,7 @@
 # Taist - AI Test Runner
 ## Token-Optimized Testing Framework for AI-Assisted Development
 
-Version: 1.1.0 | January 2025 | [Technical Specification](./SPEC.md)
+Version: 0.1.0 | January 2025 | [Technical Specification](./SPEC.md)
 
 ---
 
@@ -10,8 +10,9 @@ Version: 1.1.0 | January 2025 | [Technical Specification](./SPEC.md)
 2. [Execution Tree Output](#execution-tree-output)
 3. [Quick Start](#quick-start)
 4. [Integration Methods](#integration-methods)
-5. [Configuration Reference](#configuration-reference)
-6. [Usage Examples](#usage-examples)
+5. [Test Integration](#test-integration)
+6. [Configuration Reference](#configuration-reference)
+7. [Usage Examples](#usage-examples)
 
 ---
 
@@ -106,23 +107,24 @@ In the example above, you can immediately see that:
 ### Option 1: ESM Loader (Recommended)
 ```bash
 # Run any Node.js app with automatic tracing
-node --import taist/loader your-app.js
+node --import taist/module-patcher your-app.js
 ```
 
-### Option 2: Vite/Vitest Plugin
-```javascript
-// vitest.config.js
-import { taistPlugin } from 'taist/lib/rollup-plugin.js';
-
-export default {
-  plugins: [taistPlugin({ enabled: true })]
-};
-```
-
-### Option 3: Manual Instrumentation
+### Option 2: Manual Instrumentation
 ```javascript
 // Add at the top of your service
 import 'taist/instrument';
+import { instrumentService } from 'taist/instrument';
+
+const myService = instrumentService(new MyService(), 'MyService');
+```
+
+### Option 3: Programmatic API
+```javascript
+import { ServiceTracer } from 'taist';
+
+const tracer = new ServiceTracer({ enabled: true, depth: 3 });
+tracer.instrument(MyClass, 'MyClass');
 ```
 
 ---
@@ -131,23 +133,32 @@ import 'taist/instrument';
 
 | Method | Use Case | Setup |
 |--------|----------|-------|
-| **ESM Loader** | Node.js apps, automatic tracing | `node --import taist/loader app.js` |
-| **Vite/Rollup Plugin** | Bundled apps, build-time instrumentation | Add plugin to config |
-| **Manual Instrumentation** | Express apps, selective tracing | `import 'taist/instrument'` |
+| **ESM Loader** | Node.js apps, automatic tracing | `node --import taist/module-patcher app.js` |
+| **Import-based** | Express apps, selective tracing | `import 'taist/instrument'` |
+| **Programmatic** | Full control, multiple tracers | `new ServiceTracer()` |
 
-### ESM Loader Integration
+### ESM Loader Integration (Recommended)
 
-The ESM Loader provides automatic instrumentation for Node.js applications without requiring code changes or build configuration.
+The ESM Loader provides automatic instrumentation for Node.js applications without requiring code changes. Configure which modules to trace via `.taistrc.json`.
 
 ```bash
 # Run any Node.js app with automatic tracing
-node --import taist/loader your-app.js
+node --import taist/module-patcher your-app.js
 
-# With filtering
-TAIST_INCLUDE=services,helpers node --import taist/loader your-app.js
+# With environment variables
+TAIST_ENABLED=true TAIST_DEPTH=3 node --import taist/module-patcher your-app.js
 
 # Debug mode (shows what's being instrumented)
-TAIST_DEBUG=1 node --import taist/loader your-app.js
+TAIST_DEBUG=1 node --import taist/module-patcher your-app.js
+```
+
+**Configuration (`.taistrc.json`):**
+```json
+{
+  "include": ["src/**/*.js", "services/**/*.js"],
+  "exclude": ["**/node_modules/**", "**/*.test.js"],
+  "depth": 3
+}
 ```
 
 **When to use:**
@@ -155,41 +166,13 @@ TAIST_DEBUG=1 node --import taist/loader your-app.js
 - Quick debugging without code changes
 - Development and testing environments
 
-### Vite/Rollup Plugin
+### Import-based Instrumentation
 
-For bundled applications, use the build-time plugin:
-
-```javascript
-// vite.config.js or vitest.config.js
-import { defineConfig } from 'vite';
-import { taistPlugin } from 'taist/lib/rollup-plugin.js';
-
-export default defineConfig({
-  plugins: [
-    taistPlugin({
-      enabled: process.env.TAIST_ENABLED === 'true',
-      include: ['**/services/**', '**/helpers/**'],
-      exclude: ['**/node_modules/**', '**/*.test.js'],
-    }),
-  ],
-});
-```
-
-**Build with instrumentation:**
-```bash
-TAIST_ENABLED=true npm run build
-```
-
-**When to use:**
-- Bundled applications (Vite, Rollup, Webpack)
-- Directus extensions
-- Browser environments (via bundler)
-
-### Manual Instrumentation
-
-For Express apps or selective tracing:
+For Express apps or when you want explicit control without CLI flags:
 
 ```javascript
+// Add at the top of your entry point
+import 'taist/instrument';
 import { instrumentExpress, instrumentService } from 'taist/instrument';
 import express from 'express';
 
@@ -215,6 +198,140 @@ app.get('/users/:id', async (req, res) => {
 **Run with tracing:**
 ```bash
 TAIST_ENABLED=true node server.js
+```
+
+**When to use:**
+- Express/Fastify applications
+- Gradual adoption into existing projects
+- When you can't use `--import` flag
+
+### Programmatic API
+
+For full control over tracing configuration:
+
+```javascript
+import { ServiceTracer } from 'taist';
+
+// Create tracer with explicit configuration
+const tracer = new ServiceTracer({
+  enabled: true,
+  depth: 3,
+  outputFormat: 'toon'
+});
+
+// Instrument classes
+class UserService {
+  async getUser(id) { /* ... */ }
+}
+
+const userService = new UserService();
+tracer.instrument(userService, 'UserService');
+
+// Or wrap individual functions
+const tracedFn = tracer.wrapMethod(myFunction, 'myFunction');
+```
+
+**When to use:**
+- Complex scenarios with multiple tracers
+- Custom trace collection logic
+- Maximum flexibility needed
+
+---
+
+## Test Integration
+
+Use `TraceSession` to collect and display execution traces in your test suites. This provides visibility into what your code is doing during tests without modifying application code.
+
+### Vitest / Jest Integration
+
+```javascript
+import { describe, it, beforeAll, afterAll } from 'vitest';
+import { spawn } from 'child_process';
+import { TraceSession } from 'taist/testing';
+
+let session;
+let serverProcess;
+
+beforeAll(async () => {
+  // Start trace session
+  session = new TraceSession();
+  await session.start();
+
+  // Start your server with tracing enabled
+  serverProcess = spawn('node', ['server.js'], {
+    env: {
+      ...process.env,
+      ...session.getEnv(),  // Adds TAIST_ENABLED and TAIST_COLLECTOR_SOCKET
+      PORT: '3000',
+    },
+  });
+
+  await waitForServer();
+});
+
+afterAll(async () => {
+  // Stop server
+  serverProcess?.kill('SIGTERM');
+
+  // Print collected traces and stop session
+  session.printTraces({ maxGroups: 5 });
+  await session.stop();
+});
+
+describe('API Tests', () => {
+  it('should create user', async () => {
+    const res = await fetch('http://localhost:3000/users', {
+      method: 'POST',
+      body: JSON.stringify({ name: 'Alice' }),
+    });
+    expect(res.status).toBe(201);
+  });
+});
+```
+
+### TraceSession API
+
+| Method | Description |
+|--------|-------------|
+| `start()` | Start the trace collector |
+| `getEnv()` | Get environment variables for enabling tracing |
+| `getTraces()` | Get collected trace objects |
+| `printTraces(options)` | Format and print trace tree to console |
+| `formatTraces(options)` | Format traces as string (without printing) |
+| `stop()` | Stop the trace collector |
+
+### Print Options
+
+```javascript
+session.printTraces({
+  maxGroups: 10,    // Max request groups to show (default: 10)
+  showToon: true,   // Also show TOON format summary (default: true)
+  toonLimit: 30,    // Max traces for TOON output (default: 30)
+});
+```
+
+### Example Output
+
+When tests complete, you'll see the execution tree grouped by HTTP request:
+
+```
+============================================================
+TRACE OUTPUT
+============================================================
+Traces: 45 | Requests: 12
+
+--- Route.POST /users ---
+  fn:Route.POST /users depth:0 45ms
+    fn:UserService.register depth:1 30ms
+      fn:UserService.validateEmail depth:2 5ms
+      fn:UserService._hashPassword depth:2 10ms
+
+--- Route.GET /users/:id ---
+  fn:Route.GET /users/:id depth:0 12ms
+    fn:UserService.getUser depth:1 8ms
+      fn:Cache.get depth:2 2ms
+
+... and 10 more requests
 ```
 
 ---

@@ -1,22 +1,24 @@
 #!/usr/bin/env node
 
 /**
- * Server using Import-based Approach
+ * Server using Import-based Approach with Context-Aware Tracing
  *
  * USAGE: node server-import.js
  *
- * This approach uses the taist/instrument module:
- * - Import 'taist/instrument' at the top of your entry point
- * - Use instrumentService() and instrumentExpress() helpers
- * - Configuration via environment variables (TAIST_ENABLED, TAIST_DEPTH, etc.)
- * - Good for gradual adoption into existing projects
+ * This approach demonstrates the simplified instrumentation API:
+ * - instrumentExpress() automatically creates trace roots for each HTTP request
+ * - instrumentServiceWithContext() wraps services with depth-aware tracing
+ * - All traces within a request share the same traceId and show proper nesting
+ *
+ * Example trace output:
+ *   fn:Route.POST /users ms:45 depth:0
+ *     fn:UserService.register ms:30 depth:1
+ *       fn:UserService.validateEmail ms:5 depth:2
  */
 
 // IMPORTANT: Import taist/instrument FIRST - before other imports
-// This sets up the global tracer from environment variables
 import '../../instrument.js';
-import { instrumentExpress, instrumentService } from '../../instrument.js';
-import { getGlobalReporter } from '../../lib/trace-reporter.js';
+import { instrumentExpress, instrumentServiceWithContext } from '../../instrument.js';
 
 import express from 'express';
 import { UserService, ValidationError, RateLimitError } from './user-service.js';
@@ -24,49 +26,26 @@ import { UserService, ValidationError, RateLimitError } from './user-service.js'
 const app = express();
 app.use(express.json());
 
-// Get the reporter for sending traces to the collector
-const reporter = getGlobalReporter();
-
-// Add middleware to trace HTTP requests (sends to collector)
-app.use((req, res, next) => {
-  const start = performance.now();
-  const path = req.path;
-  const method = req.method;
-
-  res.on('finish', () => {
-    const duration = performance.now() - start;
-    reporter.report({
-      id: `req_${Date.now()}`,
-      name: `HTTP.${method} ${path}`,
-      type: 'exit',
-      args: [{ method, path, statusCode: res.statusCode }],
-      result: { statusCode: res.statusCode },
-      duration,
-      timestamp: Date.now(),
-    });
-  });
-
-  next();
-});
-
-// Instrument Express app (wraps route handlers)
+// Instrument Express app - each request becomes a trace root (depth 0)
+// All routes registered AFTER this call will have context-aware tracing
 instrumentExpress(app);
 
-// Create and instrument the UserService
-const rawUserService = new UserService();
-const userService = instrumentService(rawUserService, 'UserService');
+// Create and instrument the UserService with context propagation
+// When called from a route handler, UserService methods will be depth 1+
+const userService = instrumentServiceWithContext(new UserService(), 'UserService');
 
 // Health check
 app.get('/health', (req, res) => {
   res.json({
     status: 'ok',
-    approach: 'import',
-    description: 'Import-based (import taist/instrument)',
+    approach: 'import-context',
+    description: 'Import-based with context-aware tracing',
     timestamp: new Date().toISOString()
   });
 });
 
 // POST /users - Register a new user
+// Trace: Route.POST /users (depth 0) -> UserService.register (depth 1) -> UserService.validateEmail (depth 2)
 app.post('/users', async (req, res) => {
   try {
     const user = await userService.register(req.body);
@@ -139,8 +118,8 @@ app.post('/cleanup', (req, res) => {
 const PORT = process.env.PORT || 3456;
 const server = app.listen(PORT, () => {
   console.log(`[IMPORT] Server running on port ${PORT}`);
-  console.log(`[IMPORT] Instrumentation: import 'taist/instrument'`);
-  console.log(`[IMPORT] Config: Environment variables`);
+  console.log(`[IMPORT] Context-aware tracing enabled`);
+  console.log(`[IMPORT] Routes will show nested traces`);
 });
 
 // Handle graceful shutdown
