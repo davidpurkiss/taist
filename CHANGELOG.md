@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.4] - 2025-01-13
+
+### Fixed
+- Timer and interval handles now use `unref()` to prevent blocking process exit
+- Removed `process.exit(0)` from signal handlers to avoid interfering with test runners like Vitest
+- Fixes "close timed out" warning when running tests with taist instrumentation
+
 ## [0.1.3] - 2025-01-13
 
 ### Changed
@@ -17,10 +24,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - `tests` array in reporter results for individual test tracking
 - `shortenTestName()` method in ToonFormatter
-
-### Fixed
-- Timer and interval handles now use `unref()` to prevent blocking process exit
-- Removed `process.exit(0)` from signal handlers to avoid interfering with test runners like Vitest
 
 ## [0.1.2] - 2025-01-13
 
@@ -87,6 +90,7 @@ Initial pre-release with context-aware deep instrumentation.
 - TraceSession API documentation
 - Example output showing nested trace hierarchy
 
+[0.1.4]: https://github.com/davidpurkiss/taist/releases/tag/v0.1.4
 [0.1.3]: https://github.com/davidpurkiss/taist/releases/tag/v0.1.3
 [0.1.2]: https://github.com/davidpurkiss/taist/releases/tag/v0.1.2
 [0.1.1]: https://github.com/davidpurkiss/taist/releases/tag/v0.1.1
