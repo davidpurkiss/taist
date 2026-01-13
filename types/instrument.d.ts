@@ -13,6 +13,7 @@
  */
 
 import type { Application as ExpressApp } from 'express';
+import type { TraceReporter } from './trace-collector';
 
 export interface TraceContext {
   /** Call depth (0 = root) */
@@ -84,6 +85,19 @@ export declare class ServiceTracer {
  * Global tracer instance (initialized on module import)
  */
 export declare const tracer: ServiceTracer;
+
+/**
+ * Global reporter instance for cross-process trace collection.
+ * Automatically connects to TAIST_COLLECTOR_SOCKET if set.
+ */
+export declare const reporter: TraceReporter;
+
+/**
+ * Flush any buffered traces to the collector.
+ * Call this before process exit to ensure all traces are sent.
+ * @returns Promise that resolves when flush completes
+ */
+export declare function flushTraces(): Promise<void>;
 
 /**
  * Auto-instrument a module's exports

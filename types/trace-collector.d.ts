@@ -126,3 +126,89 @@ export declare function createDefaultFilter(
 ): (trace: TraceObject) => boolean;
 
 export default TraceCollector;
+
+/**
+ * TraceReporter Options
+ */
+export interface TraceReporterOptions {
+  /** Socket path to connect to (defaults to TAIST_COLLECTOR_SOCKET env var) */
+  socketPath?: string;
+  /** Number of traces to buffer before auto-flush (default: 100) */
+  batchSize?: number;
+  /** Flush interval in ms (default: 1000) */
+  flushInterval?: number;
+  /** Max connection retries (default: 3) */
+  maxRetries?: number;
+  /** Retry delay in ms (default: 100) */
+  retryDelay?: number;
+  /** Worker ID for identifying trace source */
+  workerId?: string | number;
+}
+
+/**
+ * TraceReporter - Client that runs in worker processes to send traces to the collector.
+ *
+ * Features:
+ * - Connects to collector via Unix domain socket
+ * - Buffers traces locally for batched sending
+ * - Auto-flushes on process exit
+ * - Handles connection failures gracefully
+ */
+export declare class TraceReporter extends EventEmitter {
+  constructor(options?: TraceReporterOptions);
+
+  /**
+   * Connect to the collector socket
+   */
+  connect(): Promise<void>;
+
+  /**
+   * Start connection eagerly (call at module init time)
+   */
+  connectEager(): this;
+
+  /**
+   * Report a single trace event
+   */
+  report(trace: TraceObject): void;
+
+  /**
+   * Async flush - sends buffered traces to collector
+   */
+  flush(): Promise<void>;
+
+  /**
+   * Synchronous flush for process exit - best effort
+   */
+  flushSync(): void;
+
+  /**
+   * Close the reporter connection
+   */
+  close(): void;
+
+  /**
+   * Check if connected to collector
+   */
+  isConnected(): boolean;
+
+  /**
+   * Get current buffer size
+   */
+  getBufferSize(): number;
+}
+
+/**
+ * Get or create the global reporter instance
+ */
+export declare function getGlobalReporter(options?: TraceReporterOptions): TraceReporter;
+
+/**
+ * Report a trace using the global reporter
+ */
+export declare function report(trace: TraceObject): void;
+
+/**
+ * Flush the global reporter
+ */
+export declare function flush(): Promise<void>;

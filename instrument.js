@@ -49,6 +49,14 @@ import {
   instrumentClassWithContext
 } from './lib/instrument-all.js';
 
+// Initialize global reporter for cross-process trace collection
+// This must happen BEFORE any instrumentation so traces are sent to collector
+const reporter = getGlobalReporter();
+if (process.env.TAIST_COLLECTOR_SOCKET) {
+  logger.log(`Connecting to trace collector: ${process.env.TAIST_COLLECTOR_SOCKET}`);
+  reporter.connectEager();
+}
+
 // Initialize global tracer from environment variables
 const tracer = new ServiceTracer({
   enabled: process.env.TAIST_ENABLED !== 'false',
@@ -62,7 +70,18 @@ const tracer = new ServiceTracer({
 });
 
 // Export for manual instrumentation
-export { tracer, autoInstrument };
+export { tracer, autoInstrument, reporter };
+
+/**
+ * Flush any buffered traces to the collector.
+ * Call this before process exit if you want to ensure all traces are sent.
+ * @returns {Promise<void>}
+ */
+export async function flushTraces() {
+  if (reporter) {
+    await reporter.flush();
+  }
+}
 
 // Log initialization
 if (tracer.options.enabled) {
