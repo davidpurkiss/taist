@@ -94,22 +94,29 @@ if (tracer.options.enabled) {
   }
 
   // Output stats periodically if not writing to file
+  // Use unref() so this doesn't keep the process alive
   if (!tracer.options.outputFile) {
-    setInterval(() => {
+    const outputTimer = setInterval(() => {
       const output = tracer.writeOutput();
       console.log('\n' + output);
     }, tracer.options.outputInterval);
+    outputTimer.unref();
   }
 
-  // Handle shutdown gracefully
+  // Handle shutdown gracefully - but don't force exit (let process exit naturally)
+  // This allows test runners like Vitest to handle cleanup properly
+  let shutdownCalled = false;
   const shutdown = () => {
+    if (shutdownCalled) return;
+    shutdownCalled = true;
     logger.log('Shutting down...');
     const insights = tracer.getInsights();
     const output = tracer.formatOutput(insights);
     console.log('\n=== Final Trace Summary ===');
     console.log(output);
     console.log('===========================\n');
-    process.exit(0);
+    // Don't call process.exit() - let the process exit naturally
+    // This prevents interference with test runners like Vitest
   };
 
   process.on('SIGINT', shutdown);

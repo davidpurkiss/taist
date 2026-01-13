@@ -160,11 +160,14 @@ describe('TaistReporter', () => {
 
       await reporter.onFinished(mockFiles, []);
 
-      expect(reporter.results.stats.total).toBe(4);
+      // total only counts tests that actually ran (pass + fail), not skipped
+      expect(reporter.results.stats.total).toBe(3);
       expect(reporter.results.stats.passed).toBe(2);
       expect(reporter.results.stats.failed).toBe(1);
       expect(reporter.results.stats.skipped).toBe(1);
       expect(reporter.results.failures.length).toBe(1);
+      // tests array should have 3 entries (pass + fail)
+      expect(reporter.results.tests.length).toBe(3);
     });
 
     it('should add unhandled errors as failures', async () => {

@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.3] - 2025-01-13
+
+### Changed
+- **Enhanced TOON output for filtered test runs** - When running a subset of tests (e.g., `vitest -t "specific test"`):
+  - Header now shows `passed/ran` instead of `passed/discovered` (e.g., `===TESTS: 1/1===` instead of `===TESTS: 1/96===`)
+  - Passing test names with duration shown when running ≤10 tests (e.g., `✓ should create order (2041ms)`)
+  - Test names shortened for readability (last part of hierarchical name)
+- Tests without a pass/fail state (filtered out, pending) are no longer counted in total
+
+### Added
+- `tests` array in reporter results for individual test tracking
+- `shortenTestName()` method in ToonFormatter
+
+### Fixed
+- Timer and interval handles now use `unref()` to prevent blocking process exit
+- Removed `process.exit(0)` from signal handlers to avoid interfering with test runners like Vitest
+
 ## [0.1.2] - 2025-01-13
 
 ### Fixed
@@ -70,6 +87,7 @@ Initial pre-release with context-aware deep instrumentation.
 - TraceSession API documentation
 - Example output showing nested trace hierarchy
 
+[0.1.3]: https://github.com/davidpurkiss/taist/releases/tag/v0.1.3
 [0.1.2]: https://github.com/davidpurkiss/taist/releases/tag/v0.1.2
 [0.1.1]: https://github.com/davidpurkiss/taist/releases/tag/v0.1.1
 [0.1.0]: https://github.com/davidpurkiss/taist/releases/tag/v0.1.0

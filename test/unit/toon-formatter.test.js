@@ -304,4 +304,84 @@ describe('ToonFormatter', () => {
       expect(formatter.truncate(undefined)).toBe('');
     });
   });
+
+  describe('shortenTestName', () => {
+    const formatter = new ToonFormatter();
+
+    it('should extract last part from hierarchical name', () => {
+      const name = 'Suite > Nested > actual test name';
+      expect(formatter.shortenTestName(name)).toBe('actual test name');
+    });
+
+    it('should return simple name unchanged', () => {
+      const name = 'should work correctly';
+      expect(formatter.shortenTestName(name)).toBe('should work correctly');
+    });
+
+    it('should handle empty string', () => {
+      expect(formatter.shortenTestName('')).toBe('');
+    });
+
+    it('should handle null/undefined', () => {
+      expect(formatter.shortenTestName(null)).toBe('');
+      expect(formatter.shortenTestName(undefined)).toBe('');
+    });
+  });
+
+  describe('enhanced output for small test runs', () => {
+    const formatter = new ToonFormatter();
+
+    it('should show passing tests when running ≤10 tests', () => {
+      const results = {
+        stats: { total: 2, passed: 2, failed: 0, skipped: 0 },
+        tests: [
+          { name: 'Suite > test one', duration: 150, state: 'pass' },
+          { name: 'Suite > test two', duration: 200, state: 'pass' }
+        ],
+        failures: []
+      };
+
+      const output = formatter.format(results);
+
+      expect(output).toContain('===TESTS: 2/2===');
+      expect(output).toContain('✓ test one (150ms)');
+      expect(output).toContain('✓ test two (200ms)');
+    });
+
+    it('should not show individual tests when running >10 tests', () => {
+      const tests = Array.from({ length: 15 }, (_, i) => ({
+        name: `test ${i}`,
+        duration: 100,
+        state: 'pass'
+      }));
+
+      const results = {
+        stats: { total: 15, passed: 15, failed: 0, skipped: 0 },
+        tests,
+        failures: []
+      };
+
+      const output = formatter.format(results);
+
+      expect(output).toContain('===TESTS: 15/15===');
+      expect(output).not.toContain('✓ test 0');
+    });
+
+    it('should only show passing tests (failures shown separately)', () => {
+      const results = {
+        stats: { total: 2, passed: 1, failed: 1, skipped: 0 },
+        tests: [
+          { name: 'passing test', duration: 100, state: 'pass' },
+          { name: 'failing test', duration: 50, state: 'fail' }
+        ],
+        failures: [{ test: 'failing test', error: 'oops' }]
+      };
+
+      const output = formatter.format(results);
+
+      expect(output).toContain('✓ passing test (100ms)');
+      expect(output).not.toContain('✓ failing test');
+      expect(output).toContain('FAILURES:');
+    });
+  });
 });
