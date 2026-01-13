@@ -1,14 +1,16 @@
 {
   "name": "taist",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Token-Optimized Testing Framework for AI-Assisted Development",
   "main": "index.js",
   "type": "module",
   "bin": {
     "taist": "./taist.js"
   },
+  "types": "./types/index.d.ts",
   "files": [
     "lib/",
+    "types/",
     "index.js",
     "taist.js",
     "instrument.js",
@@ -18,11 +20,28 @@
     ".taistrc.json"
   ],
   "exports": {
-    ".": "./index.js",
-    "./instrument": "./instrument.js",
-    "./testing": "./testing.js",
+    ".": {
+      "types": "./types/index.d.ts",
+      "default": "./index.js"
+    },
+    "./instrument": {
+      "types": "./types/instrument.d.ts",
+      "default": "./instrument.js"
+    },
+    "./testing": {
+      "types": "./types/testing.d.ts",
+      "default": "./testing.js"
+    },
+    "./vitest-reporter": {
+      "types": "./types/vitest-reporter.d.ts",
+      "default": "./lib/vitest-reporter.js"
+    },
+    "./types": "./types/index.d.ts",
     "./module-patcher": "./lib/module-patcher.js",
-    "./trace-collector": "./lib/trace-collector.js",
+    "./trace-collector": {
+      "types": "./types/trace-collector.d.ts",
+      "default": "./lib/trace-collector.js"
+    },
     "./trace-reporter": "./lib/trace-reporter.js",
     "./trace-context": "./lib/trace-context.js",
     "./instrument-all": "./lib/instrument-all.js",

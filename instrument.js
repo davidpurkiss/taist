@@ -1,11 +1,40 @@
 /**
  * Taist Auto-Instrumentation Module
  *
- * Add this line at the top of your service to enable tracing:
- * import 'taist/instrument';
+ * This module can be used in two ways:
  *
- * Or use require:
- * require('taist/instrument');
+ * 1. SIDE-EFFECT IMPORT (optional):
+ *    Add `import 'taist/instrument';` at the top of your entry point.
+ *    This initializes a global tracer, sets up signal handlers for graceful
+ *    shutdown, and configures periodic trace output based on environment variables.
+ *
+ *    @example
+ *    // Entry point - loads global tracer and signal handlers
+ *    import 'taist/instrument';
+ *    import { instrumentExpress } from 'taist/instrument';
+ *
+ * 2. DIRECT FUNCTION IMPORTS (no side effects):
+ *    Import only the functions you need:
+ *    `import { instrumentExpress, instrumentService } from 'taist/instrument';`
+ *    This is useful for post-startup instrumentation or when you want more
+ *    control over the tracer lifecycle.
+ *
+ *    @example
+ *    // Direct imports for post-startup instrumentation
+ *    import { instrumentService } from 'taist/instrument';
+ *    const traced = instrumentService(myService, 'MyService');
+ *
+ * Environment Variables (used by side-effect import):
+ * - TAIST_ENABLED: Enable/disable tracing (default: true)
+ * - TAIST_DEPTH: Trace depth level (default: 3)
+ * - TAIST_FORMAT: Output format: toon, json, compact (default: toon)
+ * - TAIST_OUTPUT_FILE: Write traces to file instead of stdout
+ * - TAIST_OUTPUT_INTERVAL: Output interval in ms (default: 30000)
+ * - TAIST_INCLUDE: Only trace modules matching patterns (comma-separated)
+ * - TAIST_EXCLUDE: Skip modules matching patterns
+ * - TAIST_SLOW_THRESHOLD: Slow operation threshold in ms (default: 100)
+ *
+ * @module taist/instrument
  */
 
 import { ServiceTracer, autoInstrument } from './lib/service-tracer.js';

@@ -13,6 +13,7 @@ Version: 0.1.0 | January 2025 | [Technical Specification](./SPEC.md)
 5. [Test Integration](#test-integration)
 6. [Configuration Reference](#configuration-reference)
 7. [Usage Examples](#usage-examples)
+8. [TypeScript Support](#typescript-support)
 
 ---
 
@@ -236,6 +237,63 @@ const tracedFn = tracer.wrapMethod(myFunction, 'myFunction');
 - Custom trace collection logic
 - Maximum flexibility needed
 
+### Side-Effect Import vs Direct Function Calls
+
+The `import 'taist/instrument'` side-effect import is **optional**. It provides convenience features but is not required for basic instrumentation.
+
+#### What the Side-Effect Import Does
+
+When you add `import 'taist/instrument'` to your entry point, it:
+
+1. **Creates a global ServiceTracer** - Initialized from environment variables
+2. **Sets up signal handlers** - Outputs trace summary on SIGINT/SIGTERM
+3. **Configures periodic output** - Writes trace summaries at intervals
+4. **Exports a pre-configured `tracer`** - Ready for immediate use
+
+#### When to Use the Side-Effect Import
+
+**Use `import 'taist/instrument'`** when:
+- You want automatic trace output on process shutdown
+- You're instrumenting at application startup
+- You want environment-variable-based configuration
+- You need the global tracer instance
+
+```javascript
+// Entry point - loads global tracer and signal handlers
+import 'taist/instrument';
+import { instrumentExpress, instrumentService } from 'taist/instrument';
+```
+
+#### When to Skip the Side-Effect Import
+
+**Skip the side-effect import** when:
+- You're instrumenting post-startup (e.g., in tests)
+- You want more control over tracer lifecycle
+- You don't want signal handlers registered
+- You're creating multiple independent tracers
+
+```javascript
+// Direct function imports - no side effects
+import { instrumentExpress, instrumentService } from 'taist/instrument';
+
+// Or use the programmatic API for full control
+import { ServiceTracer } from 'taist';
+const tracer = new ServiceTracer({ enabled: true });
+```
+
+#### Post-Startup Instrumentation
+
+The instrumentation functions (`instrumentExpress`, `instrumentService`, etc.) work independently of the side-effect import. You can instrument services after your application has started:
+
+```javascript
+// No side-effect import needed
+import { instrumentService } from 'taist/instrument';
+
+// Instrument a service created dynamically
+const service = new DynamicService();
+const traced = instrumentService(service, 'DynamicService');
+```
+
 ---
 
 ## Test Integration
@@ -307,6 +365,139 @@ session.printTraces({
   maxGroups: 10,    // Max request groups to show (default: 10)
   showToon: true,   // Also show TOON format summary (default: true)
   toonLimit: 30,    // Max traces for TOON output (default: 30)
+});
+```
+
+### Vitest Reporter Plugin
+
+The taist Vitest reporter replaces Vitest's default output with TOON format and adds execution tracing. When you run `vitest`, you get:
+- Token-optimized test results (90% fewer tokens than default output)
+- Automatic execution traces from instrumented code
+- Call hierarchy with timing, arguments, and return values
+
+#### Step 1: Configure vitest.config.js
+
+```javascript
+// vitest.config.js
+import { defineConfig } from 'vitest/config';
+
+export default defineConfig({
+  test: {
+    reporters: ['taist/vitest-reporter']
+  }
+});
+```
+
+#### Step 2: Instrument Your Code
+
+In your test file or setup file, instrument the services you want to trace:
+
+```javascript
+// test/my-service.test.js
+import { describe, it, expect } from 'vitest';
+import { instrumentService } from 'taist/instrument';
+import { UserService } from '../src/user-service.js';
+
+// Wrap the service with instrumentation
+const userService = instrumentService(new UserService(), 'UserService');
+
+describe('UserService', () => {
+  it('should create a user', async () => {
+    // Calls to userService methods are now traced
+    const user = await userService.create({ name: 'Alice' });
+    expect(user.id).toBeDefined();
+  });
+});
+```
+
+#### Step 3: Run Tests
+
+```bash
+vitest run
+```
+
+#### Example Output
+
+```
+===TESTS: 5/5===
+
+============================================================
+TRACE OUTPUT
+============================================================
+Traces: 12 | Requests: 5
+
+--- UserService.create ---
+  fn:UserService.create depth:0 45ms
+    fn:UserService.validate depth:1 5ms
+    fn:UserService.hashPassword depth:1 30ms
+    fn:UserService.save depth:1 10ms
+
+--- UserService.getById ---
+  fn:UserService.getById depth:0 8ms
+    fn:Cache.get depth:1 2ms
+```
+
+#### Reporter Options
+
+```javascript
+export default defineConfig({
+  test: {
+    reporters: [['taist/vitest-reporter', {
+      format: 'toon',        // Output format: 'toon' | 'json' | 'compact'
+      traceEnabled: true,    // Start trace collector (default: true)
+      traceDepth: 3,         // Max depth to trace (default: 3)
+      showTrace: true,       // Include trace output (default: true)
+      maxTraceGroups: 10,    // Max trace groups to show (default: 10)
+      silent: false,         // Suppress all output (default: false)
+      outputFile: null       // Write to file instead of stdout
+    }]]
+  }
+});
+```
+
+#### How Trace Collection Works
+
+1. **Reporter starts** → Creates a TraceCollector (Unix socket server)
+2. **Environment set** → Sets `TAIST_ENABLED=true` and `TAIST_COLLECTOR_SOCKET=/tmp/taist-collector-xxx.sock`
+3. **Tests run** → Instrumented code sends traces to the collector via the socket
+4. **Tests finish** → Reporter collects traces and outputs them with test results
+
+**Note:** Traces are collected from code instrumented with `instrumentService()` or `instrumentExpress()`. Code that isn't instrumented won't appear in the trace output.
+
+#### Using with Test Setup Files
+
+For larger projects, instrument services in a setup file:
+
+```javascript
+// test/setup.js
+import { instrumentService } from 'taist/instrument';
+import { UserService } from '../src/services/user-service.js';
+import { OrderService } from '../src/services/order-service.js';
+
+// Export instrumented services for use in tests
+export const userService = instrumentService(new UserService(), 'UserService');
+export const orderService = instrumentService(new OrderService(), 'OrderService');
+```
+
+```javascript
+// vitest.config.js
+export default defineConfig({
+  test: {
+    reporters: ['taist/vitest-reporter'],
+    setupFiles: ['./test/setup.js']
+  }
+});
+```
+
+```javascript
+// test/user.test.js
+import { userService } from './setup.js';
+
+describe('UserService', () => {
+  it('should get user by id', async () => {
+    const user = await userService.getById(123);
+    expect(user).toBeDefined();
+  });
 });
 ```
 
@@ -458,6 +649,39 @@ npm install -g taist
 # Project installation
 npm install --save-dev taist
 ```
+
+---
+
+## TypeScript Support
+
+Taist includes TypeScript type definitions out of the box. No additional `@types` packages needed.
+
+```typescript
+import { Taist, TestResults } from 'taist';
+import { instrumentExpress, instrumentService } from 'taist/instrument';
+import { TraceSession, TraceCollector } from 'taist/testing';
+
+// Full type safety
+const taist = new Taist({ format: 'toon', depth: 3 });
+const results: TestResults = await taist.run();
+
+// Typed instrumentation
+import express from 'express';
+const app = express();
+instrumentExpress(app);
+
+class MyService {
+  getData(): string { return 'data'; }
+}
+const service = instrumentService(new MyService(), 'MyService');
+```
+
+Types are available for all exports:
+- `taist` - Main API (Taist class, TestResults, etc.)
+- `taist/instrument` - Instrumentation functions
+- `taist/testing` - Test utilities (TraceSession, TraceCollector)
+- `taist/vitest-reporter` - Vitest reporter
+- `taist/types` - All types re-exported
 
 ---
 

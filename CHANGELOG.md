@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.1] - 2025-01-13
+
+### Added
+- **TypeScript type definitions** - Full type support for all exports
+  - `taist/types` export path for type-only imports
+  - Types for `Taist`, `TestResults`, `TraceSession`, `TraceCollector`, etc.
+  - Conditional exports with `types` field in package.json
+- **Native Vitest reporter plugin** (`taist/vitest-reporter`)
+  - Outputs test results in TOON format (90% fewer tokens)
+  - Integrated `TraceCollector` for automatic trace collection
+  - Configurable options: `traceEnabled`, `traceDepth`, `showTrace`, etc.
+  - Works with `vitest.config.js`: `reporters: ['taist/vitest-reporter']`
+- **Comprehensive test coverage** for Vitest reporter (29 unit tests, 5 integration tests)
+
+### Documentation
+- Clarified side-effect import (`import 'taist/instrument'`) vs direct function imports
+- Added "Vitest Reporter Plugin" section with step-by-step setup guide
+- Added "TypeScript Support" section showing typed usage examples
+
 ## [0.1.0] - 2025-01-08
 
 Initial pre-release with context-aware deep instrumentation.
@@ -41,4 +60,5 @@ Initial pre-release with context-aware deep instrumentation.
 - TraceSession API documentation
 - Example output showing nested trace hierarchy
 
+[0.1.1]: https://github.com/davidpurkiss/taist/releases/tag/v0.1.1
 [0.1.0]: https://github.com/davidpurkiss/taist/releases/tag/v0.1.0
