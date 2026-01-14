@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.6] - 2025-01-14
+
+### Fixed
+- **Reliable cross-process trace delivery** - Fixed race condition where traces were written to OS kernel buffer but not read by collector before socket closed
+  - Reporter now waits for drain event before closing socket
+  - Reporter uses graceful socket.end() instead of destroy
+  - Collector gives 100ms grace period after socket.end() for data to be read
+  - Added `_gracefulClose()` method with proper TCP shutdown sequence
+- Fixes issue where traces from child processes (e.g., GraphQL resolvers in Directus) were lost
+
 ## [0.1.5] - 2025-01-13
 
 ### Fixed
@@ -97,6 +107,7 @@ Initial pre-release with context-aware deep instrumentation.
 - TraceSession API documentation
 - Example output showing nested trace hierarchy
 
+[0.1.6]: https://github.com/davidpurkiss/taist/releases/tag/v0.1.6
 [0.1.5]: https://github.com/davidpurkiss/taist/releases/tag/v0.1.5
 [0.1.4]: https://github.com/davidpurkiss/taist/releases/tag/v0.1.4
 [0.1.3]: https://github.com/davidpurkiss/taist/releases/tag/v0.1.3
