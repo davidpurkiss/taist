@@ -46,7 +46,8 @@ import {
   instrumentDirectory,
   instrumentModules,
   wrapWithContext,
-  instrumentClassWithContext
+  instrumentClassWithContext,
+  instrumentModule
 } from './lib/instrument-all.js';
 
 // Initialize global reporter for cross-process trace collection
@@ -277,6 +278,7 @@ export {
   instrumentAll,
   instrumentDirectory,
   instrumentModules,
+  instrumentModule,
   wrapWithContext,
   startTrace,
   getContext,

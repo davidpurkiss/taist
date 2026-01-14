@@ -200,6 +200,28 @@ export declare function instrumentModules(
 ): Promise<Record<string, unknown>>;
 
 /**
+ * Instrument all exports from a module object
+ *
+ * Wraps all function exports with context-aware tracing.
+ * Classes are wrapped so new instances are automatically instrumented.
+ *
+ * @param moduleExports Module exports object (e.g., from `import * as mod from './mod.js'`)
+ * @param moduleName Module name prefix for trace names
+ * @returns Object with same keys but instrumented values
+ *
+ * @example
+ * import { instrumentModule } from 'taist/instrument';
+ * import * as orderServices from './services/order.js';
+ *
+ * export const Order = instrumentModule(orderServices, 'Order');
+ * // All functions in Order will now be traced
+ */
+export declare function instrumentModule<T extends Record<string, unknown>>(
+  moduleExports: T,
+  moduleName: string
+): T;
+
+/**
  * Wrap a function with trace context
  * @param fn Function to wrap
  * @param name Name for tracing

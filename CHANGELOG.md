@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.8] - 2025-01-14
+
+### Added
+- **`instrumentModule` export** - Now exported from `taist/instrument` for convenient module-level instrumentation
+  - Wraps all function exports with context-aware tracing
+  - Classes are wrapped so new instances are automatically instrumented
+  - Usage: `const traced = instrumentModule(myModuleExports, 'MyModule')`
+- TypeScript type definition for `instrumentModule`
+
 ## [0.1.7] - 2025-01-14
 
 ### Fixed
@@ -114,6 +123,7 @@ Initial pre-release with context-aware deep instrumentation.
 - TraceSession API documentation
 - Example output showing nested trace hierarchy
 
+[0.1.8]: https://github.com/davidpurkiss/taist/releases/tag/v0.1.8
 [0.1.7]: https://github.com/davidpurkiss/taist/releases/tag/v0.1.7
 [0.1.6]: https://github.com/davidpurkiss/taist/releases/tag/v0.1.6
 [0.1.5]: https://github.com/davidpurkiss/taist/releases/tag/v0.1.5
