@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.7] - 2025-01-14
+
+### Fixed
+- **Race condition between shutdown signal and SIGTERM** - Fixed issue where SIGTERM handler could call `close()` while `_handleShutdown` was still flushing traces
+  - Added `shuttingDown` flag to prevent exit handlers from interfering with graceful shutdown
+  - Exit handlers now skip cleanup if shutdown is already in progress
+
 ## [0.1.6] - 2025-01-14
 
 ### Fixed
@@ -107,6 +114,7 @@ Initial pre-release with context-aware deep instrumentation.
 - TraceSession API documentation
 - Example output showing nested trace hierarchy
 
+[0.1.7]: https://github.com/davidpurkiss/taist/releases/tag/v0.1.7
 [0.1.6]: https://github.com/davidpurkiss/taist/releases/tag/v0.1.6
 [0.1.5]: https://github.com/davidpurkiss/taist/releases/tag/v0.1.5
 [0.1.4]: https://github.com/davidpurkiss/taist/releases/tag/v0.1.4
