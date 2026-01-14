@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.10] - 2025-01-14
+
+### Fixed
+- **Class hoisting issue with circular dependencies** - Classes are now instrumented in-place instead of being renamed and re-exported
+  - `export class Foo` stays as-is (preserves JavaScript hoisting)
+  - `__taist_instrumentClass(Foo, ...)` is called after the class definition
+  - Fixes "Cannot access 'X' before initialization" errors in bundled code with circular deps
+  - Functions still use the rename/re-export pattern (hoisting not an issue for function expressions)
+
 ## [0.1.9] - 2025-01-14
 
 ### Added
@@ -133,6 +142,7 @@ Initial pre-release with context-aware deep instrumentation.
 - TraceSession API documentation
 - Example output showing nested trace hierarchy
 
+[0.1.10]: https://github.com/davidpurkiss/taist/releases/tag/v0.1.10
 [0.1.9]: https://github.com/davidpurkiss/taist/releases/tag/v0.1.9
 [0.1.8]: https://github.com/davidpurkiss/taist/releases/tag/v0.1.8
 [0.1.7]: https://github.com/davidpurkiss/taist/releases/tag/v0.1.7

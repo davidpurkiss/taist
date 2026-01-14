@@ -69,10 +69,10 @@ describe('Class Instrumentation', () => {
 
       // Should contain tracer import
       expect(transformed).toContain('import { getGlobalTracer');
-      // Should rename original class
-      expect(transformed).toContain('class __taist_orig_Calculator');
-      // Should export wrapped class
-      expect(transformed).toContain('export const Calculator = __taist_instrumentClass(__taist_orig_Calculator');
+      // Should keep original class export (preserves hoisting for circular deps)
+      expect(transformed).toContain('export class Calculator');
+      // Should instrument class in-place at the end
+      expect(transformed).toContain('__taist_instrumentClass(Calculator');
     });
 
     it('transforms class with default export', () => {
@@ -82,10 +82,10 @@ describe('Class Instrumentation', () => {
 export default Calculator;`;
       const transformed = transformSource(source, 'Calculator', 'taist/lib/service-tracer.js');
 
-      // Default export should be moved to end
-      expect(transformed).toContain('// export default moved to end');
-      // Should end with export default
-      expect(transformed.trim()).toMatch(/export default Calculator;\s*$/);
+      // Class default export should be kept in place (preserves hoisting)
+      expect(transformed).toContain('export default Calculator');
+      // Should instrument class in-place
+      expect(transformed).toContain('__taist_instrumentClass(Calculator');
     });
 
     it('transforms function export correctly', () => {
