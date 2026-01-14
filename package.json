@@ -1,6 +1,6 @@
 {
   "name": "taist",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "description": "Token-Optimized Testing Framework for AI-Assisted Development",
   "main": "index.js",
   "type": "module",
@@ -46,6 +46,14 @@
     "./trace-context": "./lib/trace-context.js",
     "./instrument-all": "./lib/instrument-all.js",
     "./config-loader": "./lib/config-loader.js",
+    "./rollup-plugin": {
+      "types": "./types/rollup-plugin.d.ts",
+      "default": "./lib/rollup-plugin.js"
+    },
+    "./vite-plugin": {
+      "types": "./types/vite-plugin.d.ts",
+      "default": "./lib/vite-plugin.js"
+    },
     "./lib/*": "./lib/*"
   },
   "scripts": {

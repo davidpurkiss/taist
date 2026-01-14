@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.9] - 2025-01-14
+
+### Added
+- **Rollup/Vite plugin for build-time instrumentation** - Enables deep tracing in bundled applications
+  - `taist/rollup-plugin` - Rollup plugin for build-time instrumentation
+  - `taist/vite-plugin` - Vite plugin (re-exports Rollup plugin)
+  - Transforms source files during build, before bundling collapses them
+  - Solves the bundled code problem where ESM loader only sees the bundle
+  - TypeScript type definitions included
+
 ## [0.1.8] - 2025-01-14
 
 ### Added
@@ -123,6 +133,7 @@ Initial pre-release with context-aware deep instrumentation.
 - TraceSession API documentation
 - Example output showing nested trace hierarchy
 
+[0.1.9]: https://github.com/davidpurkiss/taist/releases/tag/v0.1.9
 [0.1.8]: https://github.com/davidpurkiss/taist/releases/tag/v0.1.8
 [0.1.7]: https://github.com/davidpurkiss/taist/releases/tag/v0.1.7
 [0.1.6]: https://github.com/davidpurkiss/taist/releases/tag/v0.1.6
