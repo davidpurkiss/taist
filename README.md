@@ -1,7 +1,7 @@
 # Taist - AI Test Runner
 ## Token-Optimized Testing Framework for AI-Assisted Development
 
-Version: 0.1.8 | January 2025 | [Technical Specification](./SPEC.md)
+Version: 0.1.9 | January 2025 | [Technical Specification](./SPEC.md)
 
 ---
 
@@ -135,6 +135,7 @@ tracer.instrument(MyClass, 'MyClass');
 | Method | Use Case | Setup |
 |--------|----------|-------|
 | **ESM Loader** | Node.js apps, automatic tracing | `node --import taist/module-patcher app.js` |
+| **Build-Time** | Bundled apps (Directus, Vite) | `taist/vite-plugin` in build config |
 | **Import-based** | Express apps, selective tracing | `import 'taist/instrument'` |
 | **Programmatic** | Full control, multiple tracers | `new ServiceTracer()` |
 
@@ -320,6 +321,86 @@ This is particularly useful for:
 - Functions are wrapped with context-aware tracing
 - Classes are wrapped so new instances are automatically instrumented
 - Non-function exports are passed through unchanged
+
+### Build-Time Instrumentation (Bundled Apps)
+
+For applications that bundle their code (like Directus extensions, Vite apps, etc.), runtime instrumentation can't see inside the bundle. Use the **Rollup/Vite plugin** to instrument during build instead.
+
+**The Problem:**
+```
+src/order.js  ─┐
+src/user.js   ─┼─► Bundler ─► dist/bundle.js (one file)
+src/utils.js  ─┘
+                                    ↑
+                    ESM loader only sees this one module
+```
+
+**The Solution:** Instrument source files BEFORE bundling:
+```
+src/order.js  ─► instrument ─┐
+src/user.js   ─► instrument ─┼─► Bundler ─► dist/bundle.js
+src/utils.js  ─► instrument ─┘              (instrumented!)
+```
+
+#### Vite Configuration
+
+```javascript
+// vite.config.js
+import { defineConfig } from 'vite';
+import taistPlugin from 'taist/vite-plugin';
+
+export default defineConfig({
+  plugins: [
+    taistPlugin({
+      include: ['src/**/*.js', 'src/**/*.ts'],
+      exclude: ['**/*.test.js']
+    })
+  ],
+  build: {
+    rollupOptions: {
+      // Keep taist as external - it's a runtime dependency
+      external: ['taist/lib/trace-reporter.js', 'taist/lib/trace-context.js']
+    }
+  }
+});
+```
+
+#### Rollup Configuration
+
+```javascript
+// rollup.config.js
+import taistPlugin from 'taist/rollup-plugin';
+
+export default {
+  input: 'src/index.js',
+  output: { file: 'dist/bundle.js', format: 'es' },
+  plugins: [
+    taistPlugin({
+      include: ['src/**/*.js']
+    })
+  ],
+  external: ['taist/lib/trace-reporter.js', 'taist/lib/trace-context.js']
+};
+```
+
+#### Plugin Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `include` | `string[]` | `['src/**/*.js']` | Glob patterns for files to instrument |
+| `exclude` | `string[]` | `['**/node_modules/**']` | Glob patterns to skip |
+| `enabled` | `boolean` | `true` | Enable/disable (respects `TAIST_ENABLED` env) |
+
+**When to use:**
+- Directus extensions
+- Vite/Rollup bundled applications
+- Any code that gets bundled before deployment
+- When ESM loader can't intercept your modules
+
+**Runtime requirements:**
+- `taist` must be installed as a dependency of the host application
+- Set `TAIST_ENABLED=true` and `TAIST_COLLECTOR_SOCKET` at runtime
+- The built code will send traces to the collector when executed
 
 ---
 
