@@ -1,7 +1,7 @@
 # Taist - AI Test Runner
 ## Token-Optimized Testing Framework for AI-Assisted Development
 
-Version: 0.1.0 | January 2025 | [Technical Specification](./SPEC.md)
+Version: 0.1.8 | January 2025 | [Technical Specification](./SPEC.md)
 
 ---
 
@@ -293,6 +293,33 @@ import { instrumentService } from 'taist/instrument';
 const service = new DynamicService();
 const traced = instrumentService(service, 'DynamicService');
 ```
+
+#### Module-Level Instrumentation
+
+When you have a module with multiple exported functions or classes, use `instrumentModule` to wrap all exports at once:
+
+```javascript
+import { instrumentModule } from 'taist/instrument';
+import * as orderServices from './services/order.js';
+
+// Wrap all exports from the module
+export const Order = instrumentModule(orderServices, 'Order');
+
+// Now all functions in Order are traced:
+// Order.createOrder() → traced as "Order.createOrder"
+// Order.getOrder()    → traced as "Order.getOrder"
+// Order.updateOrder() → traced as "Order.updateOrder"
+```
+
+This is particularly useful for:
+- **GraphQL resolvers** - Instrument all resolver functions in a module
+- **Service layers** - Wrap entire service modules without individual instrumentation
+- **Utility modules** - Trace helper functions across a module
+
+**How it works:**
+- Functions are wrapped with context-aware tracing
+- Classes are wrapped so new instances are automatically instrumented
+- Non-function exports are passed through unchanged
 
 ---
 
