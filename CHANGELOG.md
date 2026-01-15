@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.14] - 2025-01-15
+
+### Changed
+- **Immediate flush is now the default** - Traces are sent immediately instead of buffered
+  - Prevents trace loss in spawned processes with unpredictable exit timing
+  - Set `TAIST_BUFFER_TRACES=true` to enable batching for high-throughput scenarios
+  - Reliability over performance - losing traces defeats the purpose of tracing
+
 ## [0.1.13] - 2025-01-15
 
 ### Added
@@ -171,6 +179,7 @@ Initial pre-release with context-aware deep instrumentation.
 - TraceSession API documentation
 - Example output showing nested trace hierarchy
 
+[0.1.14]: https://github.com/davidpurkiss/taist/releases/tag/v0.1.14
 [0.1.13]: https://github.com/davidpurkiss/taist/releases/tag/v0.1.13
 [0.1.12]: https://github.com/davidpurkiss/taist/releases/tag/v0.1.12
 [0.1.11]: https://github.com/davidpurkiss/taist/releases/tag/v0.1.11
