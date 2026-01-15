@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.13] - 2025-01-15
+
+### Added
+- **Debug mode for instrumentation** - Set `TAIST_DEBUG=true` to see wrapper activity
+  - Logs when methods are found and wrapped at startup
+  - Logs when wrapped functions are called at runtime
+  - Helps diagnose issues where instrumentation appears correct but traces don't appear
+
 ## [0.1.12] - 2025-01-15
 
 ### Added
@@ -163,6 +171,7 @@ Initial pre-release with context-aware deep instrumentation.
 - TraceSession API documentation
 - Example output showing nested trace hierarchy
 
+[0.1.13]: https://github.com/davidpurkiss/taist/releases/tag/v0.1.13
 [0.1.12]: https://github.com/davidpurkiss/taist/releases/tag/v0.1.12
 [0.1.11]: https://github.com/davidpurkiss/taist/releases/tag/v0.1.11
 [0.1.10]: https://github.com/davidpurkiss/taist/releases/tag/v0.1.10
