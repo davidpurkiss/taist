@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.15] - 2025-01-15
+
+### Fixed
+- **Context propagation across bundled modules** - Trace context now shared via globalThis
+  - Fixes depth 0 traces not appearing when code is bundled with Rollup/Vite
+  - Fixes depth gaps (e.g., 1 → 4) caused by disconnected AsyncLocalStorage instances
+  - Each bundle previously had its own AsyncLocalStorage, breaking parent-child relationships
+  - Uses `globalThis.__taist_trace_context__` to share context across all bundles
+
 ## [0.1.14] - 2025-01-15
 
 ### Changed
@@ -179,6 +188,7 @@ Initial pre-release with context-aware deep instrumentation.
 - TraceSession API documentation
 - Example output showing nested trace hierarchy
 
+[0.1.15]: https://github.com/davidpurkiss/taist/releases/tag/v0.1.15
 [0.1.14]: https://github.com/davidpurkiss/taist/releases/tag/v0.1.14
 [0.1.13]: https://github.com/davidpurkiss/taist/releases/tag/v0.1.13
 [0.1.12]: https://github.com/davidpurkiss/taist/releases/tag/v0.1.12
