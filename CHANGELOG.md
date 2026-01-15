@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.11] - 2025-01-15
+
+### Fixed
+- **Glob matcher bug with multi-level directory patterns** - Patterns like `src/**/*.ts` now correctly match files in nested directories (e.g., `src/resolvers/ecomm/orderUpsert.ts`)
+  - Root cause: Replacement order caused `*` inside `(?:.*\/)?` to be incorrectly replaced
+  - Fix: Use placeholders to prevent double-replacement during regex conversion
+- **Duplicate trace output** - Removed redundant TRACE section from `format()` method
+  - `formatTraceTree()` is now the sole trace output, providing grouped-by-request output with stats
+- **Build-time instrumentation not connecting to trace collector** - Added `connectEager()` call to injected code
+  - Transformed code now automatically connects to the collector when `TAIST_COLLECTOR_SOCKET` is set
+  - Fixes issue where `calls:0` was shown even though instrumented code was executing
+
 ## [0.1.10] - 2025-01-14
 
 ### Fixed
@@ -142,6 +154,7 @@ Initial pre-release with context-aware deep instrumentation.
 - TraceSession API documentation
 - Example output showing nested trace hierarchy
 
+[0.1.11]: https://github.com/davidpurkiss/taist/releases/tag/v0.1.11
 [0.1.10]: https://github.com/davidpurkiss/taist/releases/tag/v0.1.10
 [0.1.9]: https://github.com/davidpurkiss/taist/releases/tag/v0.1.9
 [0.1.8]: https://github.com/davidpurkiss/taist/releases/tag/v0.1.8

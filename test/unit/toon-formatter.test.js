@@ -124,47 +124,6 @@ describe('ToonFormatter', () => {
     });
   });
 
-  describe('formatTraceEntry', () => {
-    const formatter = new ToonFormatter();
-
-    it('should format trace with duration', () => {
-      const entry = {
-        name: 'add',
-        duration: 5.123
-      };
-      const result = formatter.formatTraceEntry(entry);
-      expect(result).toContain('fn:add');
-      expect(result).toContain('ms:5');
-    });
-
-    it('should include arguments', () => {
-      const entry = {
-        name: 'multiply',
-        args: [2, 3]
-      };
-      const result = formatter.formatTraceEntry(entry);
-      expect(result).toContain('args:');
-    });
-
-    it('should include return value', () => {
-      const entry = {
-        name: 'divide',
-        result: 5
-      };
-      const result = formatter.formatTraceEntry(entry);
-      expect(result).toContain('ret:5');
-    });
-
-    it('should include error', () => {
-      const entry = {
-        name: 'badFunction',
-        error: 'Something went wrong'
-      };
-      const result = formatter.formatTraceEntry(entry);
-      expect(result).toContain('err:');
-    });
-  });
-
   describe('formatCoverage', () => {
     const formatter = new ToonFormatter();
 
@@ -207,12 +166,12 @@ describe('ToonFormatter', () => {
       expect(output).toContain('✗');
     });
 
-    it('should include trace when present', () => {
+    it('should not include trace in format (use formatTraceTree instead)', () => {
       const formatter = new ToonFormatter();
       const output = formatter.format(resultsWithTrace);
 
-      expect(output).toContain('TRACE:');
-      expect(output).toContain('fn:add');
+      // Traces are not included in format() - use formatTraceTree() for trace output
+      expect(output).not.toContain('TRACE:');
     });
 
     it('should include coverage when present', () => {
