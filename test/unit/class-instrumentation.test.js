@@ -115,6 +115,39 @@ export default Calculator;`;
       const transformed = transformSource(source, 'Utils', 'taist/lib/service-tracer.js');
       expect(transformed).toBe(source);
     });
+
+    it('transforms object literal export with nested methods', () => {
+      const source = `export const resolvers = {
+  Query: {
+    getUser(parent, args) { return { id: args.id }; }
+  },
+  Mutation: {
+    async createUser(parent, args) { return { id: 1 }; }
+  }
+};`;
+      const transformed = transformSource(source, 'Resolvers', 'taist/lib/service-tracer.js');
+
+      // Should contain tracer import
+      expect(transformed).toContain('import { getGlobalTracer');
+      // Should keep original object export
+      expect(transformed).toContain('export const resolvers');
+      // Should instrument object in-place at the end
+      expect(transformed).toContain('__taist_instrumentObject(resolvers');
+      // Should contain the instrumentObject helper
+      expect(transformed).toContain('const __taist_instrumentObject');
+    });
+
+    it('detects object literal exports in findExports', () => {
+      const source = `export const config = { setting: true };
+export const handlers = {
+  onClick() { console.log('clicked'); }
+};`;
+      const exports = findExports(source);
+      expect(exports).toHaveLength(2);
+      expect(exports.map(e => e.name)).toContain('config');
+      expect(exports.map(e => e.name)).toContain('handlers');
+      expect(exports.filter(e => e.type === 'object')).toHaveLength(2);
+    });
   });
 
   describe('ServiceTracer.instrument() - Class Methods', () => {

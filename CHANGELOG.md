@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.12] - 2025-01-15
+
+### Added
+- **Object literal method instrumentation** - Build-time plugin now wraps methods in exported object literals
+  - Supports GraphQL resolver patterns: `export const resolvers = { Query: { getUser() {} } }`
+  - Recursively instruments nested objects using WeakSet to handle circular references
+  - New `__taist_instrumentObject` helper added to injected code
+  - Detects `export const name = { ... }` patterns alongside functions and classes
+
 ## [0.1.11] - 2025-01-15
 
 ### Fixed
@@ -154,6 +163,7 @@ Initial pre-release with context-aware deep instrumentation.
 - TraceSession API documentation
 - Example output showing nested trace hierarchy
 
+[0.1.12]: https://github.com/davidpurkiss/taist/releases/tag/v0.1.12
 [0.1.11]: https://github.com/davidpurkiss/taist/releases/tag/v0.1.11
 [0.1.10]: https://github.com/davidpurkiss/taist/releases/tag/v0.1.10
 [0.1.9]: https://github.com/davidpurkiss/taist/releases/tag/v0.1.9
