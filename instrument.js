@@ -165,6 +165,7 @@ export function instrumentExpress(app, options = {}) {
 
   // Add early middleware to set up correlation ID for ALL requests
   // This runs before any route handlers or other middleware
+  const debug = process.env.TAIST_DEBUG === 'true';
   app.use((req, res, next) => {
     // Only set up if not already set (avoid double-instrumentation)
     if (!req.taistCorrelationId) {
@@ -172,10 +173,19 @@ export function instrumentExpress(app, options = {}) {
       req.taistCorrelationId = correlationId;
       setCorrelationId(correlationId);
 
+      if (debug) {
+        logger.log('[taist middleware] Set correlationId:', correlationId, 'for', req.method, req.path);
+      }
+
       // Clear correlation ID when response finishes
       res.on('finish', () => {
+        if (debug) {
+          logger.log('[taist middleware] Clearing correlationId for', req.method, req.path);
+        }
         clearCorrelationId();
       });
+    } else if (debug) {
+      logger.log('[taist middleware] Already has correlationId:', req.taistCorrelationId, 'for', req.method, req.path);
     }
     next();
   });
@@ -347,7 +357,16 @@ export function instrumentServiceWithContext(service, name) {
  * };
  */
 export function bridgeContext(req) {
-  const correlationId = req?.taistCorrelationId || getCorrelationId();
+  const debug = process.env.TAIST_DEBUG === 'true';
+  const reqCorrelationId = req?.taistCorrelationId;
+  const fallbackCorrelationId = getCorrelationId();
+  const correlationId = reqCorrelationId || fallbackCorrelationId;
+
+  if (debug) {
+    logger.log('[bridgeContext] req.taistCorrelationId:', reqCorrelationId);
+    logger.log('[bridgeContext] getCorrelationId():', fallbackCorrelationId);
+    logger.log('[bridgeContext] using:', correlationId);
+  }
 
   // Also set the fallback so resolvers can access it even without context prop-drilling
   if (correlationId) {
