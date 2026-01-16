@@ -163,31 +163,40 @@ export function instrumentExpress(app, options = {}) {
   const useContext = options.useContext !== false;
   const reporter = getGlobalReporter();
 
-  // Add early middleware to set up correlation ID for ALL requests
-  // This runs before any route handlers or other middleware
+  // Add early middleware to set up correlation ID and trace context for ALL requests
+  // This runs before any route handlers or other middleware, ensuring all code
+  // (including auth middleware) runs within the same AsyncLocalStorage context
   const debug = process.env.TAIST_DEBUG === 'true';
   app.use((req, res, next) => {
     // Only set up if not already set (avoid double-instrumentation)
     if (!req.taistCorrelationId) {
       const correlationId = generateId();
       req.taistCorrelationId = correlationId;
-      setCorrelationId(correlationId);
 
       if (debug) {
         logger.log('[taist middleware] Set correlationId:', correlationId, 'for', req.method, req.path);
       }
 
-      // Clear correlation ID when response finishes
-      res.on('finish', () => {
-        if (debug) {
-          logger.log('[taist middleware] Clearing correlationId for', req.method, req.path);
-        }
-        clearCorrelationId();
+      // Set up trace context for the ENTIRE request (including all middleware)
+      // This ensures Auth.ensureAuthenticated and other middleware can access correlationId
+      const ctx = {
+        depth: 0,
+        traceId: null,
+        parentId: null,
+        id: null,
+        correlationId
+      };
+
+      // Run the rest of the request chain within this context
+      runWithContext(ctx, () => {
+        next();
       });
-    } else if (debug) {
-      logger.log('[taist middleware] Already has correlationId:', req.taistCorrelationId, 'for', req.method, req.path);
+    } else {
+      if (debug) {
+        logger.log('[taist middleware] Already has correlationId:', req.taistCorrelationId, 'for', req.method, req.path);
+      }
+      next();
     }
-    next();
   });
 
   // Instrument route handlers
