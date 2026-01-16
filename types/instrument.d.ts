@@ -24,6 +24,18 @@ export interface TraceContext {
   parentId: string | null;
   /** Current operation ID */
   id: string | null;
+  /** Correlation ID for grouping traces across async boundaries (e.g., Apollo Server) */
+  correlationId?: string | null;
+}
+
+export interface StartTraceOptions {
+  /** Correlation ID for grouping traces across async boundaries */
+  correlationId?: string;
+}
+
+export interface BridgeContextResult {
+  /** Correlation ID to pass to GraphQL resolvers */
+  taistCorrelationId: string | null;
 }
 
 export interface InstrumentExpressOptions {
@@ -117,6 +129,9 @@ export declare function autoInstrument<T extends object>(
  * Each HTTP request starts a new trace context, making the route handler
  * depth 0 (the trace root). All instrumented services called within the
  * request will inherit this context and have incrementing depths.
+ *
+ * Also generates a correlationId per request that persists across async
+ * boundaries. Use bridgeContext() in Apollo Server to link resolver traces.
  *
  * @param app Express application
  * @param options Instrumentation options
@@ -234,9 +249,10 @@ export declare function wrapWithContext<T extends (...args: unknown[]) => unknow
 /**
  * Start a new trace and run a function within it
  * @param fn Function to execute
+ * @param options Optional configuration (e.g., correlationId)
  * @returns Function result
  */
-export declare function startTrace<T>(fn: () => T): T;
+export declare function startTrace<T>(fn: () => T, options?: StartTraceOptions): T;
 
 /**
  * Get the current trace context
@@ -257,5 +273,56 @@ export declare function runWithContext<T>(context: TraceContext, fn: () => T): T
  * @returns Unique ID string
  */
 export declare function generateId(): string;
+
+/**
+ * Bridge trace context for Apollo Server and similar GraphQL frameworks.
+ *
+ * Apollo Server executes resolvers in a different async context than the HTTP
+ * request, breaking AsyncLocalStorage propagation. This helper extracts the
+ * correlation ID from the Express request and provides it to the GraphQL context,
+ * allowing traces from resolvers to be grouped with the original HTTP request.
+ *
+ * @param req Express request object (from Apollo context callback)
+ * @returns Object to spread into GraphQL context
+ *
+ * @example
+ * import { bridgeContext } from 'taist/instrument';
+ *
+ * const server = new ApolloServer({
+ *   typeDefs,
+ *   resolvers,
+ *   context: ({ req }) => ({
+ *     ...bridgeContext(req),
+ *     user: req.user,
+ *   }),
+ * });
+ */
+export declare function bridgeContext(req: { taistCorrelationId?: string }): BridgeContextResult;
+
+/**
+ * Get the current correlation ID (works even when AsyncLocalStorage breaks)
+ *
+ * This is useful for frameworks like Apollo Server where resolver execution
+ * happens in a different async context than the HTTP request.
+ *
+ * @returns The correlation ID for the current request, or null if none
+ */
+export declare function getCorrelationId(): string | null;
+
+/**
+ * Set the fallback correlation ID for the current request.
+ *
+ * Call this at the start of each HTTP request (e.g., in Express middleware).
+ * This provides a fallback for frameworks where AsyncLocalStorage doesn't propagate.
+ *
+ * @param id The correlation ID to set (or null to clear)
+ */
+export declare function setCorrelationId(id: string | null): void;
+
+/**
+ * Clear the fallback correlation ID.
+ * Call this at the end of each HTTP request to prevent leakage.
+ */
+export declare function clearCorrelationId(): void;
 
 export default tracer;

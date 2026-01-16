@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2025-01-16
+
+### Added
+- **Correlation ID support for Apollo Server** - Traces now grouped by HTTP request across async boundaries
+  - `bridgeContext(req)` helper for Apollo Server context callback
+  - `getCorrelationId()` / `setCorrelationId()` / `clearCorrelationId()` functions
+  - `instrumentExpress()` now auto-generates correlationId per request
+  - Traces grouped by correlationId in `formatTraceTree()` output
+  - Fixes traces from GraphQL resolvers appearing in separate trace trees
+  - TypeScript types for all new exports
+
+### Usage
+```javascript
+// Apollo Server setup
+import { instrumentExpress, bridgeContext } from 'taist/instrument';
+
+const app = express();
+instrumentExpress(app);
+
+const server = new ApolloServer({
+  typeDefs,
+  resolvers,
+  context: ({ req }) => ({
+    ...bridgeContext(req),  // Links resolver traces to HTTP request
+    user: req.user,
+  }),
+});
+```
+
 ## [0.1.15] - 2025-01-15
 
 ### Fixed
@@ -188,6 +217,7 @@ Initial pre-release with context-aware deep instrumentation.
 - TraceSession API documentation
 - Example output showing nested trace hierarchy
 
+[0.2.0]: https://github.com/davidpurkiss/taist/releases/tag/v0.2.0
 [0.1.15]: https://github.com/davidpurkiss/taist/releases/tag/v0.1.15
 [0.1.14]: https://github.com/davidpurkiss/taist/releases/tag/v0.1.14
 [0.1.13]: https://github.com/davidpurkiss/taist/releases/tag/v0.1.13
