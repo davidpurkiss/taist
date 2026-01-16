@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.1] - 2025-01-16
+
+### Fixed
+- **Correlation ID for middleware-mounted routes** - `instrumentExpress()` now adds early middleware that sets up correlationId for ALL requests, not just instrumented route handlers
+  - Fixes Apollo `expressMiddleware` mounted via `app.use()` not receiving correlationId
+  - Correlation ID is set before any other middleware runs
+  - `bridgeContext(req)` now reliably finds the correlationId
+
 ## [0.2.0] - 2025-01-16
 
 ### Added
@@ -217,6 +225,7 @@ Initial pre-release with context-aware deep instrumentation.
 - TraceSession API documentation
 - Example output showing nested trace hierarchy
 
+[0.2.1]: https://github.com/davidpurkiss/taist/releases/tag/v0.2.1
 [0.2.0]: https://github.com/davidpurkiss/taist/releases/tag/v0.2.0
 [0.1.15]: https://github.com/davidpurkiss/taist/releases/tag/v0.1.15
 [0.1.14]: https://github.com/davidpurkiss/taist/releases/tag/v0.1.14

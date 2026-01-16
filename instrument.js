@@ -163,6 +163,23 @@ export function instrumentExpress(app, options = {}) {
   const useContext = options.useContext !== false;
   const reporter = getGlobalReporter();
 
+  // Add early middleware to set up correlation ID for ALL requests
+  // This runs before any route handlers or other middleware
+  app.use((req, res, next) => {
+    // Only set up if not already set (avoid double-instrumentation)
+    if (!req.taistCorrelationId) {
+      const correlationId = generateId();
+      req.taistCorrelationId = correlationId;
+      setCorrelationId(correlationId);
+
+      // Clear correlation ID when response finishes
+      res.on('finish', () => {
+        clearCorrelationId();
+      });
+    }
+    next();
+  });
+
   // Instrument route handlers
   ['get', 'post', 'put', 'delete', 'patch', 'options', 'head'].forEach(method => {
     const original = app[method];
@@ -176,14 +193,15 @@ export function instrumentExpress(app, options = {}) {
         return async function (req, res, next) {
           const traceName = `Route.${method.toUpperCase()} ${path}`;
           const id = generateId();
-          const correlationId = generateId(); // Unique per HTTP request
+          // Use existing correlationId from early middleware, or create one
+          const correlationId = req.taistCorrelationId || generateId();
           const start = performance.now();
 
-          // Store correlationId on req for Apollo/GraphQL integration
-          req.taistCorrelationId = correlationId;
-
-          // Set fallback correlation ID for frameworks that break AsyncLocalStorage
-          setCorrelationId(correlationId);
+          // Ensure correlationId is on req (in case early middleware didn't run)
+          if (!req.taistCorrelationId) {
+            req.taistCorrelationId = correlationId;
+            setCorrelationId(correlationId);
+          }
 
           // Report function for success/error
           const reportResult = (error = null) => {
@@ -217,8 +235,7 @@ export function instrumentExpress(app, options = {}) {
             if (!responseSent) {
               responseSent = true;
               reportResult();
-              // Clear correlation ID after request completes
-              clearCorrelationId();
+              // Note: correlationId is cleared by early middleware's res.on('finish')
             }
             return originalEnd.apply(this, args);
           };
@@ -241,7 +258,6 @@ export function instrumentExpress(app, options = {}) {
               if (!responseSent) {
                 responseSent = true;
                 reportResult(err);
-                clearCorrelationId();
               }
               throw err;
             }
@@ -253,7 +269,6 @@ export function instrumentExpress(app, options = {}) {
               if (!responseSent) {
                 responseSent = true;
                 reportResult(err);
-                clearCorrelationId();
               }
               throw err;
             }
