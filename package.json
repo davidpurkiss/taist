@@ -1,6 +1,6 @@
 {
   "name": "taist",
-  "version": "0.2.10",
+  "version": "0.2.11",
   "description": "Token-Optimized Testing Framework for AI-Assisted Development",
   "main": "index.js",
   "type": "module",
