@@ -129,10 +129,10 @@ export default Calculator;`;
 
       // Should contain tracer import
       expect(transformed).toContain('import { getGlobalTracer');
-      // Should keep original object export
-      expect(transformed).toContain('export const resolvers');
-      // Should instrument object in-place at the end
-      expect(transformed).toContain('__taist_instrumentObject(resolvers');
+      // Should rename original to __taist_orig_
+      expect(transformed).toContain('const __taist_orig_resolvers');
+      // Should re-export wrapped version (build-time instrumentation)
+      expect(transformed).toContain('export const resolvers = __taist_instrumentObject(__taist_orig_resolvers');
       // Should contain the instrumentObject helper
       expect(transformed).toContain('const __taist_instrumentObject');
     });
