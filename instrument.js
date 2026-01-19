@@ -367,21 +367,18 @@ export function instrumentServiceWithContext(service, name) {
  */
 export function bridgeContext(req) {
   const debug = process.env.TAIST_DEBUG === 'true';
-  const reqCorrelationId = req?.taistCorrelationId;
-  const fallbackCorrelationId = getCorrelationId();
-  const correlationId = reqCorrelationId || fallbackCorrelationId;
+  // Only use req.taistCorrelationId - no global fallback to avoid race conditions
+  const correlationId = req?.taistCorrelationId || null;
 
   if (debug) {
-    logger.log('[bridgeContext] req.taistCorrelationId:', reqCorrelationId);
-    logger.log('[bridgeContext] getCorrelationId():', fallbackCorrelationId);
-    logger.log('[bridgeContext] using:', correlationId);
+    logger.log('[bridgeContext] req.taistCorrelationId:', correlationId);
+    if (!correlationId) {
+      logger.warn('[bridgeContext] No correlationId on request! Ensure instrumentExpress() middleware runs before Apollo.');
+    }
   }
 
-  // Also set the fallback so resolvers can access it even without context prop-drilling
-  if (correlationId) {
-    setCorrelationId(correlationId);
-  }
-
+  // Don't set global - it causes race conditions with concurrent requests
+  // The correlationId will be passed through GraphQL context instead
   return {
     taistCorrelationId: correlationId
   };
