@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.15] - 2025-01-20
+
+### Added
+- **`traceGracePeriod` option** - Configurable delay before stopping trace collector (default: 500ms)
+  - Fixes late-arriving traces in multi-process environments (e.g., Directus running in child process)
+  - Resolver traces that complete after HTTP response is sent are now captured
+  - Set via reporter options: `reporters: [['taist/vitest-reporter', { traceGracePeriod: 1000 }]]`
+  - Set to 0 to disable grace period for faster test runs when not needed
+
 ## [0.2.1] - 2025-01-16
 
 ### Fixed
@@ -225,6 +234,7 @@ Initial pre-release with context-aware deep instrumentation.
 - TraceSession API documentation
 - Example output showing nested trace hierarchy
 
+[0.2.15]: https://github.com/davidpurkiss/taist/releases/tag/v0.2.15
 [0.2.1]: https://github.com/davidpurkiss/taist/releases/tag/v0.2.1
 [0.2.0]: https://github.com/davidpurkiss/taist/releases/tag/v0.2.0
 [0.1.15]: https://github.com/davidpurkiss/taist/releases/tag/v0.1.15
