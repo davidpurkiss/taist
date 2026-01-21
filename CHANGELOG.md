@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.16] - 2025-01-21
+
+### Fixed
+- **Socket close handler now processes all buffered NDJSON lines** - When socket closes abruptly (e.g., child process SIGTERM), the collector now splits and processes all complete messages in the buffer
+  - Previously tried to parse the entire buffer as one JSON, losing all buffered traces
+  - Fixes trace loss when 372KB+ of data arrives without trailing newlines before socket close
+
 ## [0.2.15] - 2025-01-20
 
 ### Added
@@ -234,6 +241,7 @@ Initial pre-release with context-aware deep instrumentation.
 - TraceSession API documentation
 - Example output showing nested trace hierarchy
 
+[0.2.16]: https://github.com/davidpurkiss/taist/releases/tag/v0.2.16
 [0.2.15]: https://github.com/davidpurkiss/taist/releases/tag/v0.2.15
 [0.2.1]: https://github.com/davidpurkiss/taist/releases/tag/v0.2.1
 [0.2.0]: https://github.com/davidpurkiss/taist/releases/tag/v0.2.0
