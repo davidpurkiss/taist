@@ -92,6 +92,45 @@ export async function flushTraces() {
   }
 }
 
+/**
+ * Gracefully shutdown taist - call this before process exit.
+ * Waits for pending socket writes to complete and flushes remaining traces.
+ *
+ * This is the recommended way to ensure all traces are captured when integrating
+ * with applications that have their own shutdown hooks (e.g., Directus onShutdown).
+ *
+ * @param {number} timeoutMs - Maximum time to wait for pending writes (default: 2000ms)
+ * @returns {Promise<void>}
+ *
+ * @example
+ * // Directus integration
+ * import { gracefulShutdown } from 'taist/instrument';
+ *
+ * export default defineHook(({ onShutdown }) => {
+ *   onShutdown(async () => {
+ *     await gracefulShutdown();
+ *   });
+ * });
+ */
+export async function gracefulShutdown(timeoutMs = 2000) {
+  if (!reporter) return;
+
+  // Prevent SIGTERM handler from doing redundant work
+  if (reporter.shuttingDown || reporter.closed) return;
+  reporter.shuttingDown = true;
+
+  // 1. Wait for pending writes to complete
+  if (reporter._waitForPendingWrites) {
+    await reporter._waitForPendingWrites(timeoutMs);
+  }
+
+  // 2. Final flush of any buffered traces
+  await reporter.flush();
+
+  // 3. Close socket cleanly
+  reporter.close();
+}
+
 // Log initialization
 if (tracer.options.enabled) {
   logger.log('Instrumentation enabled');

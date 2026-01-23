@@ -108,15 +108,15 @@ export interface TraceEntry {
   id?: string;
   /** Function or operation name */
   name: string;
-  /** Trace type */
-  type: 'enter' | 'exit' | 'error' | 'event';
-  /** Function arguments */
+  /** Trace type: 'entry' for function start, 'exit' for completion, 'error' for exceptions */
+  type: 'entry' | 'enter' | 'exit' | 'error' | 'event';
+  /** Function arguments (may be truncated) */
   args?: unknown[];
-  /** Return value */
+  /** Return value (may be truncated) */
   result?: unknown;
   /** Error details */
   error?: { name: string; message: string } | string;
-  /** Duration in milliseconds */
+  /** Duration in milliseconds (only on exit/error traces) */
   duration?: number;
   /** Timestamp */
   timestamp: number;
@@ -126,6 +126,8 @@ export interface TraceEntry {
   parentId?: string | null;
   /** Root trace ID for grouping */
   traceId?: string;
+  /** Correlation ID for grouping traces across async boundaries */
+  correlationId?: string;
 }
 
 export interface CoverageInfo {

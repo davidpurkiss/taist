@@ -112,6 +112,28 @@ export declare const reporter: TraceReporter;
 export declare function flushTraces(): Promise<void>;
 
 /**
+ * Gracefully shutdown taist - call this before process exit.
+ * Waits for pending socket writes to complete and flushes remaining traces.
+ *
+ * This is the recommended way to ensure all traces are captured when integrating
+ * with applications that have their own shutdown hooks (e.g., Directus onShutdown).
+ *
+ * @param timeoutMs Maximum time to wait for pending writes (default: 2000ms)
+ * @returns Promise that resolves when shutdown is complete
+ *
+ * @example
+ * // Directus integration
+ * import { gracefulShutdown } from 'taist/instrument';
+ *
+ * export default defineHook(({ onShutdown }) => {
+ *   onShutdown(async () => {
+ *     await gracefulShutdown();
+ *   });
+ * });
+ */
+export declare function gracefulShutdown(timeoutMs?: number): Promise<void>;
+
+/**
  * Auto-instrument a module's exports
  * @param moduleExports Module exports object
  * @param name Module name

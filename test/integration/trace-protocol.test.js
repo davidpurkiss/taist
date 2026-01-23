@@ -15,6 +15,7 @@ import net from 'node:net';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
+import { spawn } from 'node:child_process';
 import { TraceCollector } from '../../lib/trace-collector.js';
 import { TraceReporter, resetGlobalReporter } from '../../lib/trace-reporter.js';
 import { transformSource } from '../../lib/transform.js';
@@ -647,5 +648,94 @@ describe('Trace Protocol Integration', () => {
       expect(traces.find(t => t.name === 'depth-2').depth).toBe(2);
       expect(traces.find(t => t.name === 'depth-3').depth).toBe(3);
     });
+  });
+
+  // ============================================================
+  // SIGTERM Handling Tests
+  // ============================================================
+  describe('SIGTERM Handling', () => {
+    it('should complete pending writes before SIGTERM exit', async () => {
+      console.log('TEST STARTING');
+      const collector = new TraceCollector({ maxTraces: 5000 });
+      await collector.start();
+      console.log('COLLECTOR STARTED:', collector.getSocketPath());
+
+      // Create a child process script that generates many traces then waits
+      // This simulates what happens in a real Directus/GraphQL scenario
+      const childScript = `
+import { TraceReporter } from './lib/trace-reporter.js';
+
+const reporter = new TraceReporter({
+  socketPath: process.env.TAIST_COLLECTOR_SOCKET,
+  flushImmediate: true
+});
+
+// Generate 2000 traces rapidly (like a GraphQL resolver with many nested calls)
+console.log('GENERATING_TRACES');
+for (let i = 0; i < 2000; i++) {
+  reporter.report({
+    name: 'trace-' + i,
+    depth: i % 10,
+    timestamp: Date.now(),
+    id: 'unique-' + i
+  });
+}
+console.log('TRACES_QUEUED pendingWrites=' + reporter.pendingWrites);
+
+// Keep process alive until SIGTERM
+setTimeout(() => {}, 60000);
+      `;
+
+      const tempFile = path.join(process.cwd(), `test-sigterm-child-${Date.now()}.mjs`);
+      fs.writeFileSync(tempFile, childScript);
+      console.log('CHILD SCRIPT WRITTEN:', tempFile);
+
+      // Spawn child process with cwd explicitly set
+      const child = spawn('node', [tempFile], {
+        cwd: process.cwd(),
+        env: { ...process.env, TAIST_COLLECTOR_SOCKET: collector.getSocketPath() },
+        stdio: 'inherit'
+      });
+      console.log('CHILD SPAWNED:', child.pid);
+
+      // Wait for TRACES_QUEUED output (indicates traces have been queued for sending)
+      // Give minimal time - just enough for the child to run
+      await delay(500);
+
+      console.log('Sending SIGTERM immediately after trace generation...');
+
+      // Send SIGTERM (this is what test teardown does to Directus)
+      child.kill('SIGTERM');
+
+      // Wait for child to exit (with timeout since current implementation doesn't exit on SIGTERM)
+      const exitPromise = new Promise((resolve) => child.on('exit', resolve));
+      const timeoutPromise = delay(3000).then(() => 'timeout');
+      const result = await Promise.race([exitPromise, timeoutPromise]);
+
+      if (result === 'timeout') {
+        console.log('Child did not exit after SIGTERM (expected with current implementation)');
+        child.kill('SIGKILL'); // Force kill
+        await exitPromise; // Wait for forced exit
+      }
+
+      // Wait for any remaining data to arrive at collector
+      await delay(500);
+      await collector.stop();
+
+      // Clean up temp file
+      try {
+        fs.unlinkSync(tempFile);
+      } catch {
+        // Ignore cleanup errors
+      }
+
+      // Check how many traces were collected
+      const traces = collector.getTraces();
+      console.log('Traces collected:', traces.length, 'out of 2000');
+
+      // All 2000 traces should be collected - the SIGTERM handler now
+      // waits for pending writes to complete before exiting
+      expect(traces).toHaveLength(2000);
+    }, 20000); // 20s timeout for this test
   });
 });

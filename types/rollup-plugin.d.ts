@@ -21,6 +21,20 @@ export interface TaistPluginOptions {
   exclude?: string[];
 
   /**
+   * Function names to exclude from wrapping.
+   * Useful for excluding utility functions that generate excessive traces.
+   * @example ['log', 'debug', 'toString', 'valueOf']
+   */
+  excludeFunctions?: string[];
+
+  /**
+   * Maximum trace depth (0 = unlimited).
+   * Functions called beyond this depth will not be traced.
+   * Useful for limiting trace volume in deeply nested code.
+   */
+  maxDepth?: number;
+
+  /**
    * Enable/disable the plugin.
    * Defaults to true, or respects TAIST_ENABLED environment variable.
    */

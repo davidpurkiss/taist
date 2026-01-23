@@ -5,6 +5,61 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.19] - 2025-01-22
+
+### Added
+- **Entry traces** - Functions now report a trace immediately on entry (`type: 'entry'`)
+  - Ensures visibility of running functions even if collector stops before completion
+  - Fixes missing resolver traces in GraphQL scenarios where response completes before resolver finishes
+- **Trace truncation** - Args and results are automatically truncated to prevent huge payloads
+  - `TAIST_MAX_ARG_SIZE` env var (default: 1000 chars)
+  - `TAIST_MAX_RESULT_SIZE` env var (default: 1000 chars)
+  - Truncated values show `{ __truncated: true, length: N, preview: "..." }`
+  - Fixes 18MB+ trace data issues with build-time instrumentation
+- **Exclude patterns** for rollup/vite plugin
+  - `excludeFunctions` option to skip specific function names (e.g., `['log', 'debug', 'toString']`)
+  - `maxDepth` option to limit trace depth (0 = unlimited)
+
+### Changed
+- Exit traces no longer include `args` (already captured in entry trace) - reduces duplication
+
+## [0.2.18] - 2025-01-22
+
+### Added
+- **`gracefulShutdown()` function** - Explicit API for host application integration
+  - Waits for pending socket writes to complete (configurable timeout, default 2s)
+  - Flushes remaining buffered traces
+  - Closes socket cleanly
+  - Use this in Directus `onShutdown` hook or similar lifecycle callbacks
+  - The SIGTERM handler is now a fallback; explicit shutdown is preferred
+
+### Usage
+```javascript
+// Directus integration
+import { gracefulShutdown } from 'taist/instrument';
+
+export default defineHook(({ onShutdown }) => {
+  onShutdown(async () => {
+    await gracefulShutdown();
+  });
+});
+```
+
+## [0.2.17] - 2025-01-21
+
+### Fixed
+- **SIGTERM handler now waits for pending writes before exit** - When a child process receives SIGTERM (e.g., test teardown killing Directus), the reporter now waits up to 2 seconds for pending socket writes to complete before exiting
+  - Previously, SIGTERM triggered cleanup but didn't call `process.exit()`, leaving process running
+  - Fixes trace loss when thousands of writes are queued but SIGTERM arrives before callbacks fire
+
+### Added
+- **Micro-batching for flushImmediate mode** - Traces generated in the same event loop tick are now batched together using `setImmediate()`
+  - Reduces socket write count from thousands to ~100s (e.g., 2762 writes → ~50 batched writes)
+  - Combined with the SIGTERM fix, ensures reliable trace collection in multi-process environments
+
+### Tests
+- Added `SIGTERM Handling` integration test that spawns a child process, generates 2000 traces, and verifies all are collected after SIGTERM
+
 ## [0.2.16] - 2025-01-21
 
 ### Fixed
@@ -241,6 +296,9 @@ Initial pre-release with context-aware deep instrumentation.
 - TraceSession API documentation
 - Example output showing nested trace hierarchy
 
+[0.2.19]: https://github.com/davidpurkiss/taist/releases/tag/v0.2.19
+[0.2.18]: https://github.com/davidpurkiss/taist/releases/tag/v0.2.18
+[0.2.17]: https://github.com/davidpurkiss/taist/releases/tag/v0.2.17
 [0.2.16]: https://github.com/davidpurkiss/taist/releases/tag/v0.2.16
 [0.2.15]: https://github.com/davidpurkiss/taist/releases/tag/v0.2.15
 [0.2.1]: https://github.com/davidpurkiss/taist/releases/tag/v0.2.1

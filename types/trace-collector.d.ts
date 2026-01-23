@@ -22,15 +22,15 @@ export interface TraceObject {
   id?: string;
   /** Function or operation name */
   name: string;
-  /** Trace type */
-  type: 'enter' | 'exit' | 'error' | 'event';
-  /** Function arguments */
-  args?: unknown[];
-  /** Return value */
-  result?: unknown;
+  /** Trace type: 'entry' for function start, 'exit' for completion, 'error' for exceptions */
+  type: 'entry' | 'enter' | 'exit' | 'error' | 'event';
+  /** Function arguments (may be truncated) */
+  args?: unknown[] | TruncatedValue;
+  /** Return value (may be truncated) */
+  result?: unknown | TruncatedValue;
   /** Error details */
   error?: { name: string; message: string } | string;
-  /** Duration in milliseconds */
+  /** Duration in milliseconds (only on exit/error traces) */
   duration?: number;
   /** Timestamp */
   timestamp: number;
@@ -40,6 +40,22 @@ export interface TraceObject {
   parentId?: string | null;
   /** Root trace ID for grouping */
   traceId?: string;
+  /** Correlation ID for grouping traces across async boundaries */
+  correlationId?: string;
+}
+
+/** Placeholder for truncated values to prevent huge payloads */
+export interface TruncatedValue {
+  __truncated: true;
+  /** Original JSON string length */
+  length: number;
+  /** Preview of the value */
+  preview: string;
+}
+
+/** Placeholder for unserializable values */
+export interface UnserializableValue {
+  __error: 'unserializable';
 }
 
 export interface TraceCollectorEvents {
@@ -143,6 +159,12 @@ export interface TraceReporterOptions {
   retryDelay?: number;
   /** Worker ID for identifying trace source */
   workerId?: string | number;
+  /** Flush traces immediately instead of batching (default: true) */
+  flushImmediate?: boolean;
+  /** Max size for args JSON before truncation (default: 1000, 0 = no truncation) */
+  maxArgSize?: number;
+  /** Max size for result JSON before truncation (default: 1000, 0 = no truncation) */
+  maxResultSize?: number;
 }
 
 /**
